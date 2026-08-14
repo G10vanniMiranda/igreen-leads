@@ -1,8 +1,10 @@
 # Conexão Green — aquisição de leads
 
-Fundação da aplicação de aquisição e pré-qualificação de leads da Conexão
-Green. Esta etapa contém apenas o shell visual e a configuração tipada da
-integração de encaminhamento.
+Aplicação de aquisição e operação de leads da Conexão Green. O fluxo inclui
+landing page, pré-qualificação, captura consentida, upload privado de fatura,
+painel administrativo, encaminhamento comercial, atribuição e controles de
+privacidade e segurança. O roadmap versionado está em
+[`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md).
 
 ## Ambiente local
 
@@ -18,5 +20,7 @@ npm run dev
 ```bash
 npm run lint
 npm run typecheck
+npm test
 npm run build
+npm audit
 ```

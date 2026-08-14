@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
+import { isPublicExperiencePath } from "@/config/route-scope";
 import {
   CONSENT_CHANGED_EVENT,
   OPEN_CONSENT_EVENT,
@@ -13,10 +15,13 @@ import {
 type PanelMode = "closed" | "banner" | "settings";
 
 export function ConsentPreferencesPanel() {
+  const pathname = usePathname();
+  const publicExperience = isPublicExperiencePath(pathname);
   const [mode, setMode] = useState<PanelMode>("closed");
   const [choices, setChoices] = useState({ analytics: false, advertising: false });
 
   useEffect(() => {
+    if (!publicExperience) return;
     const stored = readConsentPreferences(window.localStorage);
     queueMicrotask(() => {
       if (stored) {
@@ -32,7 +37,7 @@ export function ConsentPreferencesPanel() {
     };
     window.addEventListener(OPEN_CONSENT_EVENT, open);
     return () => window.removeEventListener(OPEN_CONSENT_EVENT, open);
-  }, []);
+  }, [publicExperience]);
 
   function persist(next: Readonly<{ analytics: boolean; advertising: boolean }>) {
     const preferences = saveConsentPreferences(window.localStorage, next);
@@ -41,7 +46,7 @@ export function ConsentPreferencesPanel() {
     window.dispatchEvent(new CustomEvent<ConsentPreferences>(CONSENT_CHANGED_EVENT, { detail: preferences }));
   }
 
-  if (mode === "closed") return null;
+  if (!publicExperience || mode === "closed") return null;
 
   return (
     <section className="consent-panel" aria-label="Preferências de privacidade" role="dialog" aria-modal="false">

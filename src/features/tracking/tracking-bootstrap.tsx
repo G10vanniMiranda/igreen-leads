@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect } from "react";
+import { usePathname } from "next/navigation";
+import { isPublicExperiencePath } from "@/config/route-scope";
 import {
   CONSENT_CHANGED_EVENT,
   defaultConsentPreferences,
@@ -12,8 +14,13 @@ import { getBrowserTracker } from "./client";
 import type { AnalyticsConfig } from "./config";
 
 export function TrackingBootstrap({ config }: Readonly<{ config: AnalyticsConfig }>) {
+  const pathname = usePathname();
   useEffect(() => {
     const tracker = getBrowserTracker();
+    if (!isPublicExperiencePath(pathname)) {
+      tracker?.setProviders([]);
+      return;
+    }
     let active = configureBrowserProviders(
       config,
       readConsentPreferences(window.localStorage) ?? defaultConsentPreferences(),
@@ -36,6 +43,6 @@ export function TrackingBootstrap({ config }: Readonly<{ config: AnalyticsConfig
       tracker?.setProviders([]);
       active.dispose();
     };
-  }, [config]);
+  }, [config, pathname]);
   return null;
 }

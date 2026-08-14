@@ -14,6 +14,7 @@ import { parseAnalyticsConfig } from "./config.ts";
 import { trackBillUploadOutcome, trackLeadSubmissionOutcome } from "./funnel-outcomes.ts";
 import { GA4_EVENT_MAP, META_EVENT_MAP, createGa4Provider, createMetaPixelProvider } from "./providers.ts";
 import { PUBLIC_FUNNEL_EVENTS, type TrackingEvent, type TrackingProvider } from "./types.ts";
+import { isPublicExperiencePath } from "../../config/route-scope.ts";
 
 class MemoryStorage {
   private readonly values = new Map<string, string>();
@@ -159,6 +160,19 @@ describe("jornada e contrato de eventos", () => {
 });
 
 describe("providers, privacidade e operação", () => {
+  test("tracking e consentimento públicos nunca abrangem rotas administrativas", async () => {
+    assert.equal(isPublicExperiencePath("/"), true);
+    assert.equal(isPublicExperiencePath("/privacidade"), true);
+    assert.equal(isPublicExperiencePath("/admin"), false);
+    assert.equal(isPublicExperiencePath("/admin/login"), false);
+    assert.equal(isPublicExperiencePath("/admin/leads/00000000-0000-4000-8000-000000000000"), false);
+    const sources = await Promise.all([
+      readFile("src/features/tracking/tracking-bootstrap.tsx", "utf8"),
+      readFile("src/features/privacy/consent-preferences.tsx", "utf8"),
+    ]);
+    assert.ok(sources.every((source) => source.includes("isPublicExperiencePath")));
+  });
+
   test("Meta e GA não inicializam quando desabilitados", () => {
     const transport = () => assert.fail("transport não deve ser chamado");
     const config = { enabled: false, id: null, environment: "test" as const, consentGranted: true };

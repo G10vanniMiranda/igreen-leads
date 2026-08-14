@@ -111,7 +111,7 @@ This document is the versioned source of truth for the project technical roadmap
 
 ### TASK 10 — E2E / Homologation / Production Readiness
 
-**Status:** PLANNED
+**Status:** COMPLETED
 
 - **Objective:** Validate the integrated product before any production release.
 - **Main deliveries:** Approved end-to-end scenarios, homologation evidence, operational checklist, and release readiness assessment.
