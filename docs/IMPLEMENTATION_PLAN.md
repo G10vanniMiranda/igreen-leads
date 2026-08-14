@@ -91,7 +91,7 @@ This document is the versioned source of truth for the project technical roadmap
 
 ### TASK 8 — Marketing Attribution & Analytics
 
-**Status:** PLANNED
+**Status:** COMPLETED
 
 - **Objective:** Measure acquisition and real funnel outcomes responsibly.
 - **Main deliveries:** Approved attribution model, consent-aware analytics, and truthful conversion events.

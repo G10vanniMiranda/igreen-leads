@@ -24,9 +24,11 @@ import {
   parseLeadSubmission,
 } from "../../leads/schemas/lead-submission";
 import type {
-  LeadAttribution,
   LeadSubmissionResponse,
 } from "../../leads/types/lead";
+import { getFirstTouchAttribution, toLeadAttribution } from "../../tracking/attribution";
+import { getBrowserTracker } from "../../tracking/client";
+import { trackBillUploadOutcome, trackLeadSubmissionOutcome } from "../../tracking/funnel-outcomes";
 import {
   ACCOUNT_HOLDER_OPTIONS,
   BILL_RANGE_OPTIONS,
@@ -134,6 +136,7 @@ export function QualificationFlow() {
   const focusTargetRef = useRef<HTMLHeadingElement>(null);
   const hasMountedRef = useRef(false);
   const hasStartedRef = useRef(false);
+  const hasStartedLeadRef = useRef(false);
   const submissionIdRef = useRef("");
   const [contact, setContact] = useState({
     name: "",
@@ -201,20 +204,21 @@ export function QualificationFlow() {
     if (!submissionIdRef.current) {
       submissionIdRef.current = crypto.randomUUID();
     }
+    if (!hasStartedLeadRef.current) {
+      hasStartedLeadRef.current = true;
+      getBrowserTracker()?.track("lead_started");
+    }
     dispatch({ type: "continue_to_next_step" });
   }
 
-  function getAttribution(): LeadAttribution {
-    const pageUrl = new URL(window.location.href);
-    return {
-      utmSource: pageUrl.searchParams.get("utm_source"),
-      utmMedium: pageUrl.searchParams.get("utm_medium"),
-      utmCampaign: pageUrl.searchParams.get("utm_campaign"),
-      utmContent: pageUrl.searchParams.get("utm_content"),
-      utmTerm: pageUrl.searchParams.get("utm_term"),
-      referrer: document.referrer || null,
-      landingPage: pageUrl.href,
-    };
+  function getAttribution() {
+    const tracker = getBrowserTracker();
+    if (tracker) return toLeadAttribution(tracker.attribution);
+    return toLeadAttribution(getFirstTouchAttribution(
+      window.sessionStorage,
+      window.location.href,
+      document.referrer,
+    ));
   }
 
   async function handleContactSubmit(event: FormEvent<HTMLFormElement>) {
@@ -256,6 +260,7 @@ export function QualificationFlow() {
         return;
       }
       setSubmissionState("success");
+      trackLeadSubmissionOutcome(true, getBrowserTracker());
     } catch {
       setSubmissionState("error");
     }
@@ -286,6 +291,9 @@ export function QualificationFlow() {
     if (!billUpload.file || billUpload.status === "uploading") return;
 
     dispatchBillUpload({ type: "upload_started" });
+    getBrowserTracker()?.track("bill_upload_started", {
+      fileType: billUpload.file.type,
+    });
     const form = new FormData();
     form.set("submissionId", submissionIdRef.current);
     form.set("file", billUpload.file);
@@ -304,6 +312,7 @@ export function QualificationFlow() {
         return;
       }
       dispatchBillUpload({ type: "upload_succeeded" });
+      trackBillUploadOutcome(true, result.duplicate, getBrowserTracker());
     } catch {
       dispatchBillUpload({
         type: "upload_failed",

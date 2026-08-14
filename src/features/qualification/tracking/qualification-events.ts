@@ -1,4 +1,5 @@
 import type { QualificationResult, QualificationStep } from "../types/qualification";
+import { getBrowserTracker } from "../../tracking/client";
 
 export type QualificationEvent =
   | { name: "qualification_started" }
@@ -16,12 +17,7 @@ export interface QualificationTracker {
   track(event: QualificationEvent): void;
 }
 
-const noopQualificationTracker: QualificationTracker = {
-  track() {
-    // Ponto de extensão intencional: nenhum evento sai da aplicação nesta task.
-  },
-};
-
 export function trackQualificationEvent(event: QualificationEvent): void {
-  noopQualificationTracker.track(event);
+  const { name, ...context } = event;
+  getBrowserTracker()?.track(name, context);
 }
