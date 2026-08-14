@@ -61,7 +61,7 @@ This document is the versioned source of truth for the project technical roadmap
 
 ### TASK 5 — Secure Electricity Bill Upload
 
-**Status:** PLANNED
+**Status:** COMPLETED
 
 - **Objective:** Add a secure path for eligible users to provide an electricity bill.
 - **Main deliveries:** Upload journey, protected storage boundary, validation, and lifecycle handling.
@@ -71,7 +71,7 @@ This document is the versioned source of truth for the project technical roadmap
 
 ### TASK 6 — Lead Operations Panel
 
-**Status:** PLANNED
+**Status:** COMPLETED
 
 - **Objective:** Support authorized operational handling of captured leads.
 - **Main deliveries:** Restricted lead visibility and the minimum approved operational workflow.

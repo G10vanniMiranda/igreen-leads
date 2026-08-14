@@ -5,9 +5,19 @@ import {
   useReducer,
   useRef,
   useState,
+  type ChangeEvent,
   type FormEvent,
   type ReactNode,
 } from "react";
+import {
+  BillValidationError,
+  validateBillSelection,
+} from "../../documents/schemas/bill-upload";
+import type { BillUploadResponse } from "../../documents/types/document";
+import {
+  INITIAL_BILL_UPLOAD_STATE,
+  billUploadUiReducer,
+} from "../../documents/utils/bill-upload-state";
 import {
   LeadValidationError,
   formatBrazilianPhoneInput,
@@ -134,8 +144,12 @@ export function QualificationFlow() {
     Readonly<Record<string, string>>
   >({});
   const [submissionState, setSubmissionState] = useState<
-    "idle" | "submitting" | "error" | "success" | "complete"
+    "idle" | "submitting" | "error" | "success"
   >("idle");
+  const [billUpload, dispatchBillUpload] = useReducer(
+    billUploadUiReducer,
+    INITIAL_BILL_UPLOAD_STATE,
+  );
 
   const currentStep = getCurrentStep(state);
   const stepNumber = state.stepIndex + 1;
@@ -244,6 +258,57 @@ export function QualificationFlow() {
       setSubmissionState("success");
     } catch {
       setSubmissionState("error");
+    }
+  }
+
+  function handleBillSelection(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.currentTarget.files?.[0] ?? null;
+    if (!file) {
+      dispatchBillUpload({ type: "select", file: null });
+      return;
+    }
+    try {
+      validateBillSelection(file);
+      dispatchBillUpload({ type: "select", file });
+    } catch (error) {
+      event.currentTarget.value = "";
+      dispatchBillUpload({
+        type: "selection_error",
+        message: error instanceof BillValidationError && error.reason === "size"
+          ? "O arquivo deve ter no máximo 10 MB."
+          : "Envie uma fatura em PDF, JPG ou PNG.",
+      });
+    }
+  }
+
+  async function handleBillSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!billUpload.file || billUpload.status === "uploading") return;
+
+    dispatchBillUpload({ type: "upload_started" });
+    const form = new FormData();
+    form.set("submissionId", submissionIdRef.current);
+    form.set("file", billUpload.file);
+
+    try {
+      const response = await fetch("/api/lead-documents", {
+        method: "POST",
+        body: form,
+      });
+      const result = await response.json() as BillUploadResponse;
+      if (!response.ok || !result.ok) {
+        dispatchBillUpload({
+          type: "upload_failed",
+          message: result.ok ? "Não foi possível enviar sua fatura agora. Tente novamente." : result.message,
+        });
+        return;
+      }
+      dispatchBillUpload({ type: "upload_succeeded" });
+    } catch {
+      dispatchBillUpload({
+        type: "upload_failed",
+        message: "Não foi possível enviar sua fatura agora. Tente novamente.",
+      });
     }
   }
 
@@ -378,13 +443,29 @@ export function QualificationFlow() {
   }
 
   if (state.view === "next_step") {
-    if (submissionState === "success" || submissionState === "complete") {
+    if (submissionState === "success") {
+      if (billUpload.status === "success") {
+        return (
+          <div className="qualification-panel qualification-result" aria-live="polite">
+            <ResultIcon />
+            <p className="text-sm font-bold tracking-[0.14em] text-primary uppercase">
+              Fatura recebida com sucesso
+            </p>
+            <h3 ref={focusTargetRef} tabIndex={-1} className="mt-3 max-w-2xl text-3xl font-semibold tracking-[-0.04em] outline-none sm:text-4xl">
+              Envio concluído com segurança.
+            </h3>
+            <p className="mt-4 max-w-2xl text-lg leading-8 text-muted">
+              Vamos analisar as informações e orientar você sobre a próxima etapa.
+            </p>
+            <p className="mt-6 font-semibold text-primary" role="status">
+              Solicitação registrada. Você pode fechar esta página com segurança.
+            </p>
+          </div>
+        );
+      }
+
       return (
-        <div
-          className="qualification-panel qualification-result"
-          aria-live="polite"
-        >
-          <ResultIcon />
+        <form className="qualification-panel" onSubmit={handleBillSubmit} noValidate>
           <p className="text-sm font-bold tracking-[0.14em] text-primary uppercase">
             Dados recebidos
           </p>
@@ -393,28 +474,45 @@ export function QualificationFlow() {
             tabIndex={-1}
             className="mt-3 max-w-2xl text-3xl font-semibold tracking-[-0.04em] outline-none sm:text-4xl"
           >
-            Recebemos suas informações.
+            Agora envie sua conta de energia para concluirmos a análise inicial.
           </h3>
           <p className="mt-4 max-w-2xl text-lg leading-8 text-muted">
-            Agora vamos analisar os dados iniciais da sua conta e orientar você
-            sobre a próxima etapa.
+            Ela nos ajuda a analisar os dados reais da unidade consumidora e dar continuidade ao atendimento.
           </p>
-          {submissionState === "success" ? (
-            <div className="qualification-result-actions">
-              <button
-                type="button"
-                className="qualification-button qualification-button-primary"
-                onClick={() => setSubmissionState("complete")}
-              >
-                Continuar
-              </button>
-            </div>
-          ) : (
-            <p className="mt-6 font-semibold text-primary" role="status">
-              Solicitação registrada. Você pode fechar esta página com segurança.
+          <div className="bill-upload-fields">
+            <label className="bill-upload-picker">
+              <span className="bill-upload-picker-title">Selecionar fatura</span>
+              <span className="bill-upload-picker-help">PDF, JPG ou PNG · máximo de 10 MB</span>
+              <input
+                type="file"
+                name="bill"
+                accept="application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png"
+                onChange={handleBillSelection}
+                disabled={billUpload.status === "uploading"}
+              />
+            </label>
+            {billUpload.file && (
+              <p className="bill-upload-filename" role="status">
+                Arquivo selecionado: <strong>{billUpload.file.name}</strong>
+              </p>
+            )}
+            <p className="bill-upload-privacy">
+              Seu arquivo será utilizado somente para análise da sua conta e continuidade do atendimento.
             </p>
-          )}
-        </div>
+            {billUpload.status === "error" && (
+              <p className="qualification-submit-error" role="alert">{billUpload.message}</p>
+            )}
+          </div>
+          <div className="qualification-result-actions">
+            <button
+              type="submit"
+              className="qualification-button qualification-button-primary"
+              disabled={!billUpload.file || billUpload.status === "uploading"}
+            >
+              {billUpload.status === "uploading" ? "Enviando fatura..." : "Enviar minha fatura"}
+            </button>
+          </div>
+        </form>
       );
     }
 
