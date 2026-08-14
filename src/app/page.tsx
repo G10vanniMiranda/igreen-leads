@@ -1,6 +1,17 @@
 import { BrandMark } from "@/components/brand-mark";
 import { Hero } from "@/components/hero";
-import { QualificationPlaceholder } from "@/features/qualification/components/qualification-placeholder";
+import {
+  Benefits,
+  Faq,
+  FinalCta,
+  HowItWorks,
+  SavingsBlock,
+  SharedEnergy,
+  Transparency,
+  TrustStrip,
+} from "@/components/landing-sections";
+import { SiteHeader } from "@/components/site-header";
+import { QualificationSection } from "@/features/qualification/components/qualification-section";
 
 export default function Home() {
   return (
@@ -9,24 +20,35 @@ export default function Home() {
         Pular para o conteúdo
       </a>
 
-      <header className="site-header">
-        <div className="container-shell flex h-full items-center justify-between">
-          <a href="#inicio" aria-label="Conexão Green — início">
-            <BrandMark />
-          </a>
-          <span className="header-note">Energia compartilhada</span>
-        </div>
-      </header>
+      <SiteHeader />
 
       <main id="conteudo-principal">
         <Hero />
-        <QualificationPlaceholder />
+        <TrustStrip />
+        <HowItWorks />
+        <SharedEnergy />
+        <Benefits />
+        <SavingsBlock />
+        <QualificationSection />
+        <Transparency />
+        <Faq />
+        <FinalCta />
       </main>
 
       <footer className="site-footer">
         <div className="container-shell">
           <BrandMark compact />
-          <p>Uma forma simples de descobrir se sua conta pode economizar.</p>
+          <div className="footer-copy">
+            <p>
+              Uma solução para analisar sua conta e apresentar condições de
+              energia compartilhada.
+            </p>
+            <p>
+              Participação, percentual e economia sujeitos à análise e às
+              condições aplicáveis.
+            </p>
+          </div>
+          <span className="footer-policy">Política de Privacidade — em preparação</span>
         </div>
       </footer>
     </div>

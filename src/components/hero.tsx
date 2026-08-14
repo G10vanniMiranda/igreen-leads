@@ -40,6 +40,11 @@ export function Hero() {
             Green.
           </p>
 
+          <p className="hero-context">
+            Uma análise inicial simples para entender as condições da sua unidade
+            consumidora.
+          </p>
+
           <a
             href="#qualificacao"
             className="mt-8 inline-flex min-h-14 w-full items-center justify-center gap-3 rounded-full bg-primary px-7 py-3.5 text-base font-bold text-primary-contrast shadow-lg shadow-green-900/10 transition-colors hover:bg-primary-hover sm:w-auto"
