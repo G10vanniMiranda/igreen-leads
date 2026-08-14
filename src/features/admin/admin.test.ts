@@ -19,6 +19,7 @@ const sessionCookie = `${ADMIN_COOKIE_NAME}=${createAdminSession()}`;
 class MockRepository implements AdminRepository {
   statusCalls: Array<[string, LeadStatus]> = [];
   notesCalls: Array<[string, string | null]> = [];
+  handoffCalls: Array<[string, string, string]> = [];
   shouldFail = false;
   dashboard(): Promise<DashboardMetrics> { throw new Error("unused"); }
   list(): Promise<LeadListItem[]> { throw new Error("unused"); }
@@ -30,6 +31,9 @@ class MockRepository implements AdminRepository {
     return { previous_status: "NEW", current_status: status, changed: true };
   }
   async updateNotes(id: string, notes: string | null) { this.notesCalls.push([id, notes]); }
+  async recordHandoffEvent(id: string, eventType: "whatsapp_opened" | "igreen_handoff_opened", actionId: string) {
+    this.handoffCalls.push([id, eventType, actionId]); return true;
+  }
 }
 
 function formRequest(path: string, values: Record<string, string>, authenticated = true) {

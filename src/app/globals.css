@@ -1282,6 +1282,12 @@ button:focus-visible {
 .admin-events li { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .9rem 0; border-bottom: 1px solid #e8ede9; }
 .admin-events li div { display: grid; gap: .2rem; }
 .admin-events span, .admin-events small { color: #68766d; font-size: .78rem; }
+.admin-section-kicker { color: #168447; font-size: .72rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+.admin-action-button, .admin-explicit-status-form button { display: inline-flex; min-height: 2.75rem; width: 100%; align-items: center; justify-content: center; margin-top: 1rem; border: 1px solid transparent; border-radius: .65rem; padding: .65rem 1rem; font: inherit; font-weight: 750; cursor: pointer; }
+.admin-action-primary { background: #168447; color: white; }
+.admin-action-secondary { border-color: #168447; background: #eef8f2; color: #126b3b; }
+.admin-action-button:disabled { cursor: wait; opacity: .65; }
+.admin-explicit-status-form button { border-color: #cbd6cd; background: white; color: #263b2e; }
 
 @media (min-width: 48rem) {
   .admin-metrics { grid-template-columns: repeat(5, minmax(0, 1fr)); }

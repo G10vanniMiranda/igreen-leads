@@ -1,6 +1,9 @@
+import { randomUUID } from "node:crypto";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { HandoffActionForm } from "@/features/admin/handoff-action-form";
 import { AdminRepositoryError, SupabaseAdminRepository } from "@/features/admin/repository";
+import { eventDescription, eventLabel, statusLabel } from "@/features/admin/timeline";
 import { LEAD_STATUSES } from "@/features/admin/types";
 import { isLeadId } from "@/features/admin/validation";
 
@@ -24,6 +27,8 @@ export default async function LeadDetailPage({ params, searchParams }: Readonly<
   const { saved } = await searchParams;
   const lead = detail.lead;
   const document = detail.document;
+  const whatsappActionId = randomUUID();
+  const igreenActionId = randomUUID();
 
   return (
     <main className="admin-main">
@@ -42,12 +47,41 @@ export default async function LeadDetailPage({ params, searchParams }: Readonly<
           <p className="admin-help">Acesso privado temporário, válido por 120 segundos.</p>
         </section>
         <section className="admin-detail-card">
+          <p className="admin-section-kicker">Contato</p>
+          <h2>Conversar com o lead</h2>
+          <p className="admin-help">Abre uma conversa com mensagem inicial. Nenhuma mensagem é enviada automaticamente.</p>
+          <HandoffActionForm
+            action={`/api/admin/leads/${id}/whatsapp`}
+            actionId={whatsappActionId}
+            label="Chamar no WhatsApp"
+            pendingLabel="Abrindo WhatsApp…"
+          />
+        </section>
+        <section className="admin-detail-card">
+          <p className="admin-section-kicker">Handoff</p>
+          <h2>Continuar no fluxo oficial</h2>
+          <p className="admin-help">Abre somente o link configurado da iGreen, sem enviar dados do lead.</p>
+          <HandoffActionForm
+            action={`/api/admin/leads/${id}/igreen-handoff`}
+            actionId={igreenActionId}
+            label="Continuar na iGreen"
+            pendingLabel="Abrindo iGreen…"
+            variant="secondary"
+          />
+          <form action={`/api/admin/leads/${id}/status`} method="post" className="admin-explicit-status-form">
+            <input type="hidden" name="status" value="SENT_TO_IGREEN" />
+            <button type="submit">Marcar como enviado para iGreen</button>
+          </form>
+          <p className="admin-help">Abrir o fluxo não altera o status. Use a marcação apenas após confirmação operacional.</p>
+        </section>
+        <section className="admin-detail-card">
+          <p className="admin-section-kicker">Status</p>
           <h2>Atualizar status</h2>
           <form action={`/api/admin/leads/${id}/status`} method="post" className="admin-form-inline">
-            <label htmlFor="status">Novo status</label><select id="status" name="status" defaultValue={lead.status}>{LEAD_STATUSES.map((status) => <option key={status}>{status}</option>)}</select>
+            <label htmlFor="status">Novo status</label><select id="status" name="status" defaultValue={lead.status}>{LEAD_STATUSES.map((status) => <option key={status} value={status}>{statusLabel(status)}</option>)}</select>
             <button type="submit">Salvar status</button>
           </form>
-          <p className="admin-help">Mudanças reais geram um evento atômico <code>status_changed</code>.</p>
+          <p className="admin-help">Contrato enviado, contratado e ativado são declarações manuais. Mudanças reais geram <code>status_changed</code>.</p>
         </section>
         <section className="admin-detail-card admin-detail-wide">
           <h2>Observação interna</h2>
@@ -60,8 +94,8 @@ export default async function LeadDetailPage({ params, searchParams }: Readonly<
         <section className="admin-detail-card admin-detail-wide">
           <h2>Histórico de eventos</h2>
           <ol className="admin-events">{detail.events.map((event) => {
-            const metadata = typeof event.metadata === "object" && event.metadata ? event.metadata as Record<string, unknown> : {};
-            return <li key={String(event.id)}><div><strong>{show(event.event_type)}</strong><span>{show(event.created_at)}</span></div>{event.event_type === "status_changed" ? <small>{show(metadata.from)} → {show(metadata.to)}</small> : null}</li>;
+            const description = eventDescription(event);
+            return <li key={String(event.id)}><div><strong>{eventLabel(event.event_type)}</strong><span>{show(event.created_at)}</span></div>{description ? <small>{description}</small> : null}</li>;
           })}</ol>
         </section>
       </div>

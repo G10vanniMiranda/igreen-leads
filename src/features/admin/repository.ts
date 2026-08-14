@@ -1,4 +1,5 @@
 import type { DashboardMetrics, LeadDetail, LeadFilters, LeadListItem, LeadStatus } from "./types";
+import type { HandoffEventType } from "./handoff";
 
 type StatusResult = Readonly<{ previous_status: string; current_status: string; changed: boolean }>;
 type BillDocument = Readonly<{ storage_bucket: string; storage_path: string }>;
@@ -17,6 +18,7 @@ export interface AdminRepository {
   billDocument(leadId: string): Promise<BillDocument>;
   updateStatus(leadId: string, status: LeadStatus): Promise<StatusResult>;
   updateNotes(leadId: string, notes: string | null): Promise<void>;
+  recordHandoffEvent(leadId: string, eventType: HandoffEventType, actionId: string): Promise<boolean>;
 }
 
 export class SupabaseAdminRepository implements AdminRepository {
@@ -60,6 +62,12 @@ export class SupabaseAdminRepository implements AdminRepository {
   async updateNotes(leadId: string, notes: string | null) {
     await this.rpcScalar<string | null>("admin_update_internal_notes", {
       p_lead_id: leadId, p_internal_notes: notes,
+    });
+  }
+
+  async recordHandoffEvent(leadId: string, eventType: HandoffEventType, actionId: string) {
+    return this.rpcScalar<boolean>("admin_record_handoff_event", {
+      p_lead_id: leadId, p_event_type: eventType, p_action_id: actionId,
     });
   }
 

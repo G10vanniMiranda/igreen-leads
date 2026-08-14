@@ -81,7 +81,7 @@ This document is the versioned source of truth for the project technical roadmap
 
 ### TASK 7 — Commercial Handoff / iGreen / WhatsApp
 
-**Status:** PLANNED
+**Status:** COMPLETED
 
 - **Objective:** Connect qualified lead outcomes to the approved commercial continuation channel.
 - **Main deliveries:** Explicit handoff boundary and approved iGreen/WhatsApp behavior.

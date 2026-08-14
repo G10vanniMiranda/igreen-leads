@@ -5,6 +5,7 @@ import {
 import type { AdminRepository } from "./repository";
 import { createSignedBillUrl } from "./signed-bill";
 import { createSearchToken } from "./search-token";
+import { buildCommercialIGreenUrl, buildWhatsAppUrl, type HandoffEventType } from "./handoff";
 import { isLeadId, isLeadStatus, validateInternalNotes } from "./validation";
 
 const PRIVATE_HEADERS = { "Cache-Control": "private, no-store", "X-Robots-Tag": "noindex, nofollow" };
@@ -89,6 +90,41 @@ export async function billHandler(request: Request, leadId: string, repository: 
     const document = await repository.billDocument(leadId);
     const signedUrl = await createSignedBillUrl(document.storage_bucket, document.storage_path);
     return new Response(null, { status: 303, headers: { ...PRIVATE_HEADERS, Location: signedUrl } });
+  } catch {
+    return rejected(500);
+  }
+}
+
+type HandoffAction = "whatsapp" | "igreen";
+
+export async function handoffHandler(
+  request: Request,
+  leadId: string,
+  action: HandoffAction,
+  repository: AdminRepository,
+) {
+  if (!authorized(request)) return rejected(401);
+  if (!isSameOriginMutation(request)) return rejected(403);
+  try {
+    const actionId = (await request.formData()).get("actionId");
+    if (!isLeadId(leadId) || !isLeadId(actionId)) return rejected(400);
+
+    let destination: URL;
+    let eventType: HandoffEventType;
+    if (action === "whatsapp") {
+      const detail = await repository.detail(leadId);
+      destination = buildWhatsAppUrl(detail.lead.name, detail.lead.phone);
+      eventType = "whatsapp_opened";
+    } else {
+      destination = buildCommercialIGreenUrl();
+      eventType = "igreen_handoff_opened";
+    }
+
+    await repository.recordHandoffEvent(leadId, eventType, actionId);
+    return new Response(null, {
+      status: 303,
+      headers: { ...PRIVATE_HEADERS, Location: destination.toString(), "Referrer-Policy": "no-referrer" },
+    });
   } catch {
     return rejected(500);
   }
