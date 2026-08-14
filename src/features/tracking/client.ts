@@ -24,11 +24,14 @@ export function createBrowserTracker(dependencies: BrowserTrackingDependencies) 
     dependencies.referrer,
   );
   const sessionId = getJourneyId(dependencies.storage, randomId);
-  const providers = dependencies.providers ?? [];
+  let providers = dependencies.providers ?? [];
 
   return Object.freeze({
     attribution,
     sessionId,
+    setProviders(nextProviders: readonly TrackingProvider[]) {
+      providers = [...nextProviders];
+    },
     track(eventName: PublicFunnelEventName, context: TrackingContext = {}): TrackingEvent {
       const event = Object.freeze({
         eventName,

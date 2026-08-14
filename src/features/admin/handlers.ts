@@ -7,6 +7,12 @@ import { createSignedBillUrl } from "./signed-bill";
 import { createSearchToken } from "./search-token";
 import { buildCommercialIGreenUrl, buildWhatsAppUrl, type HandoffEventType } from "./handoff";
 import { isLeadId, isLeadStatus, validateInternalNotes } from "./validation";
+import {
+  ADMIN_LOGIN_RATE_LIMIT,
+  adminLoginRateLimiter,
+  rateLimitResponse,
+  type RateLimiter,
+} from "../security/rate-limit";
 
 const PRIVATE_HEADERS = { "Cache-Control": "private, no-store", "X-Robots-Tag": "noindex, nofollow" };
 
@@ -22,14 +28,16 @@ function rejected(status: 400 | 401 | 403 | 500) {
   return Response.json({ error: status === 401 ? "Unauthorized" : status === 403 ? "Forbidden" : status === 400 ? "Invalid request" : "Internal error" }, { status, headers: PRIVATE_HEADERS });
 }
 
-export async function loginHandler(request: Request) {
+export async function loginHandler(request: Request, limiter: RateLimiter = adminLoginRateLimiter) {
   if (!isSameOriginMutation(request)) return rejected(403);
+  const limited = rateLimitResponse(request, "admin-login", ADMIN_LOGIN_RATE_LIMIT, limiter);
+  if (limited) return limited;
   try {
     const form = await request.formData();
     if (!verifyAdminPassword(form.get("password"))) return redirect(request, "/admin/login?error=invalid");
     const token = createAdminSession();
     const secure = new URL(request.url).protocol === "https:" ? "; Secure" : "";
-    const cookie = `${ADMIN_COOKIE_NAME}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${ADMIN_SESSION_SECONDS}${secure}`;
+    const cookie = `${ADMIN_COOKIE_NAME}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Strict; Priority=High; Max-Age=${ADMIN_SESSION_SECONDS}${secure}`;
     return redirect(request, "/admin", { "Set-Cookie": cookie });
   } catch {
     return rejected(500);
@@ -41,7 +49,7 @@ export function logoutHandler(request: Request) {
   if (!isSameOriginMutation(request)) return rejected(403);
   const secure = new URL(request.url).protocol === "https:" ? "; Secure" : "";
   return redirect(request, "/admin/login", {
-    "Set-Cookie": `${ADMIN_COOKIE_NAME}=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0${secure}`,
+    "Set-Cookie": `${ADMIN_COOKIE_NAME}=; Path=/; HttpOnly; SameSite=Strict; Priority=High; Max-Age=0${secure}`,
   });
 }
 

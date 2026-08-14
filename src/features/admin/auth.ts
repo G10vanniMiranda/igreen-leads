@@ -1,14 +1,16 @@
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
+import { isSameOriginRequest } from "../security/request-security";
 
 export const ADMIN_COOKIE_NAME = "igreen_admin_session";
 export const ADMIN_SESSION_SECONDS = 8 * 60 * 60;
+export const ADMIN_PASSWORD_MIN_LENGTH = 12;
 
 type SessionPayload = Readonly<{ role: "admin"; issuedAt: number; expiresAt: number }>;
 
 function getConfig() {
   const password = process.env.ADMIN_PASSWORD;
   const secret = process.env.ADMIN_SESSION_SECRET;
-  if (!password || password.length < 12 || !secret || secret.length < 32) return null;
+  if (!password || password.length < ADMIN_PASSWORD_MIN_LENGTH || !secret || secret.length < 32) return null;
   return { password, secret };
 }
 
@@ -52,13 +54,7 @@ export function verifyAdminSession(token: unknown, nowSeconds = Math.floor(Date.
 }
 
 export function isSameOriginMutation(request: Request): boolean {
-  const origin = request.headers.get("origin");
-  const forwardedHost = request.headers.get("x-forwarded-host")?.split(",")[0]?.trim();
-  const host = forwardedHost || request.headers.get("host") || new URL(request.url).host;
-  const forwardedProtocol = request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim();
-  const protocol = forwardedProtocol || new URL(request.url).protocol.replace(":", "");
-  if (!origin || !host || !protocol) return false;
-  return origin === `${protocol}://${host}`;
+  return isSameOriginRequest(request);
 }
 
 export function readSessionCookie(request: Request): string | undefined {

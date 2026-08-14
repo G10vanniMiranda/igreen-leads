@@ -12,12 +12,11 @@ import {
 } from "@/components/landing-sections";
 import { SiteHeader } from "@/components/site-header";
 import { QualificationSection } from "@/features/qualification/components/qualification-section";
-import { TrackingBootstrap } from "@/features/tracking/tracking-bootstrap";
+import { OpenConsentPreferencesButton } from "@/features/privacy/consent-preferences";
 
 export default function Home() {
   return (
     <div id="inicio" className="min-h-screen bg-background">
-      <TrackingBootstrap />
       <a className="skip-link" href="#conteudo-principal">
         Pular para o conteúdo
       </a>
@@ -50,7 +49,10 @@ export default function Home() {
               condições aplicáveis.
             </p>
           </div>
-          <span className="footer-policy">Política de Privacidade — em preparação</span>
+          <div className="footer-privacy-links">
+            <a href="/privacidade">Política de Privacidade</a>
+            <OpenConsentPreferencesButton />
+          </div>
         </div>
       </footer>
     </div>

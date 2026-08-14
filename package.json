@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test src/features/qualification/qualification.test.ts src/features/leads/leads.test.ts src/features/landing/landing.test.ts src/features/documents/documents.test.ts src/features/admin/admin.test.ts src/features/admin/handoff.test.ts src/features/tracking/tracking.test.ts"
+    "test": "tsx --test src/features/qualification/qualification.test.ts src/features/leads/leads.test.ts src/features/landing/landing.test.ts src/features/documents/documents.test.ts src/features/admin/admin.test.ts src/features/admin/handoff.test.ts src/features/tracking/tracking.test.ts src/features/security/security.test.ts"
   },
   "dependencies": {
     "next": "16.3.0",

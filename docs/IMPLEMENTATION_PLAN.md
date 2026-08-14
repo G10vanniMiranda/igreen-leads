@@ -101,7 +101,7 @@ This document is the versioned source of truth for the project technical roadmap
 
 ### TASK 9 — Privacy, Security & Anti-Abuse Hardening
 
-**Status:** PLANNED
+**Status:** COMPLETED
 
 - **Objective:** Harden the complete funnel against privacy, security, and abuse risks.
 - **Main deliveries:** Threat review and approved controls for data, APIs, uploads, access, and abuse prevention.

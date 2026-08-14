@@ -20,7 +20,7 @@ import {
 const submissionId = "4b9cb506-aeab-4b6b-8319-38a6012519d8";
 const leadId = "812692bc-579f-46d4-9c78-2a074d74be4e";
 const documentId = "cfe5d4a1-2676-46e8-abf4-78460b6010fc";
-const pdfBytes = new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x34]);
+const pdfBytes = new TextEncoder().encode("%PDF-1.4\nsynthetic bill\n%%EOF");
 
 function file(name = "fatura.pdf", type = "application/pdf", bytes = pdfBytes): File {
   return new File([bytes], name, { type });
@@ -83,6 +83,11 @@ describe("validação da fatura", () => {
       (error: unknown) => error instanceof BillValidationError && error.reason === "content");
   });
 
+  test("rejeita polyglot PDF/HTML simples", async () => {
+    const bytes = new TextEncoder().encode("%PDF-1.4\n<script>alert(1)</script>\n%%EOF");
+    await assert.rejects(() => parseBillFile(file("fatura.pdf", "application/pdf", bytes)), BillValidationError);
+  });
+
   test("rejeita combinação incoerente de extensão e MIME", async () => {
     await assert.rejects(() => parseBillFile(file("fatura.png", "application/pdf")), BillValidationError);
   });
@@ -108,12 +113,15 @@ describe("validação da fatura", () => {
   });
 
   test("aceita JPEG e normaliza extensão jpeg para jpg", async () => {
-    const parsed = await parseBillFile(file("fatura.jpeg", "image/jpeg", new Uint8Array([0xff, 0xd8, 0xff, 0xd9])));
+    const parsed = await parseBillFile(file("fatura.jpeg", "image/jpeg", new Uint8Array([0xff, 0xd8, 0xff, 0x00, 0xff, 0xd9])));
     assert.equal(parsed.extension, "jpg");
   });
 
   test("aceita assinatura PNG completa", async () => {
-    const parsed = await parseBillFile(file("fatura.png", "image/png", new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])));
+    const parsed = await parseBillFile(file("fatura.png", "image/png", new Uint8Array([
+      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+      0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82,
+    ])));
     assert.equal(parsed.extension, "png");
   });
 });
@@ -167,7 +175,11 @@ describe("Route Handler", () => {
     const form = new FormData();
     form.set("submissionId", submissionId);
     form.set("file", upload);
-    return new Request("http://localhost/api/lead-documents", { method: "POST", body: form });
+    return new Request("http://localhost/api/lead-documents", {
+      method: "POST",
+      body: form,
+      headers: { Origin: "http://localhost" },
+    });
   }
 
   test("retorna sucesso sem expor bucket ou caminho", async () => {

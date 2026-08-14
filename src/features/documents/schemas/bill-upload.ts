@@ -62,10 +62,19 @@ function validateMetadata(file: Pick<File, "name" | "type" | "size">): {
 
 function hasExpectedSignature(bytes: Uint8Array, mimeType: BillMimeType): boolean {
   if (mimeType === "application/pdf") {
-    return bytes.length >= 5 && bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46 && bytes[4] === 0x2d;
+    const prefix = bytes.length >= 5 && bytes[0] === 0x25 && bytes[1] === 0x50
+      && bytes[2] === 0x44 && bytes[3] === 0x46 && bytes[4] === 0x2d;
+    const tail = new TextDecoder("latin1").decode(bytes.slice(Math.max(0, bytes.length - 1_024)));
+    const head = new TextDecoder("latin1").decode(bytes.slice(0, Math.min(bytes.length, 1_024))).toLowerCase();
+    return prefix && tail.includes("%%EOF") && !/<(?:html|script|svg)|<\?xml/.test(head);
   }
   if (mimeType === "image/jpeg") {
-    return bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+    return bytes.length >= 5 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff
+      && bytes.at(-2) === 0xff && bytes.at(-1) === 0xd9;
   }
-  return bytes.length >= 8 && [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a].every((byte, index) => bytes[index] === byte);
+  const pngStart = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+  const pngEnd = [0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82];
+  return bytes.length >= pngStart.length + pngEnd.length
+    && pngStart.every((byte, index) => bytes[index] === byte)
+    && pngEnd.every((byte, index) => bytes[bytes.length - pngEnd.length + index] === byte);
 }

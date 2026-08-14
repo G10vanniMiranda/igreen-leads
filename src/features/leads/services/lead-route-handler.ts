@@ -2,6 +2,8 @@ import { LeadPersistenceError, SupabaseLeadRepository } from "../repository/supa
 import { LeadValidationError, parseLeadSubmission } from "../schemas/lead-submission";
 import type { LeadRepository } from "./lead-submission";
 import { submitLead } from "./lead-submission";
+import { isSameOriginRequest } from "../../security/request-security";
+import { LEAD_RATE_LIMIT, publicRateLimiter, rateLimitResponse, type RateLimiter } from "../../security/rate-limit";
 
 const MAX_REQUEST_BYTES = 16_384;
 
@@ -9,10 +11,19 @@ export async function handleLeadPost(
   request: Request,
   repository: LeadRepository = new SupabaseLeadRepository(),
   igreenReferralId: string | null = process.env.IGREEN_REFERRAL_ID?.trim() || null,
+  limiter: RateLimiter = publicRateLimiter,
 ): Promise<Response> {
+  if (!isSameOriginRequest(request)) {
+    return Response.json({ ok: false, code: "INVALID_ORIGIN", message: "Origem inválida." }, { status: 403, headers: { "Cache-Control": "private, no-store" } });
+  }
+  const limited = rateLimitResponse(request, "lead", LEAD_RATE_LIMIT, limiter);
+  if (limited) return limited;
   const declaredLength = Number(request.headers.get("content-length") ?? 0);
   if (Number.isFinite(declaredLength) && declaredLength > MAX_REQUEST_BYTES) {
-    return Response.json({ ok: false, code: "INVALID_INPUT", message: "Dados inválidos." }, { status: 413 });
+    return Response.json(
+      { ok: false, code: "INVALID_INPUT", message: "Dados inválidos." },
+      { status: 413, headers: { "Cache-Control": "private, no-store" } },
+    );
   }
 
   try {
@@ -29,15 +40,15 @@ export async function handleLeadPost(
       created: result.created,
     });
 
-    return Response.json({ ok: true, leadId: result.leadId }, { status: result.created ? 201 : 200 });
+    return Response.json({ ok: true, leadId: result.leadId }, { status: result.created ? 201 : 200, headers: { "Cache-Control": "private, no-store" } });
   } catch (error) {
     if (error instanceof LeadValidationError || error instanceof SyntaxError) {
       const fieldErrors = error instanceof LeadValidationError ? error.fieldErrors : undefined;
-      return Response.json({ ok: false, code: "INVALID_INPUT", message: "Revise os dados informados.", fieldErrors }, { status: 400 });
+      return Response.json({ ok: false, code: "INVALID_INPUT", message: "Revise os dados informados.", fieldErrors }, { status: 400, headers: { "Cache-Control": "private, no-store" } });
     }
 
     const errorClass = error instanceof LeadPersistenceError ? error.errorClass : "unexpected";
     console.error("lead_submission_failure", { timestamp: new Date().toISOString(), error_class: errorClass });
-    return Response.json({ ok: false, code: "PERSISTENCE_FAILED", message: "Não foi possível enviar agora. Tente novamente." }, { status: 503 });
+    return Response.json({ ok: false, code: "PERSISTENCE_FAILED", message: "Não foi possível enviar agora. Tente novamente." }, { status: 503, headers: { "Cache-Control": "private, no-store" } });
   }
 }

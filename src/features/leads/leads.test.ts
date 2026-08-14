@@ -145,6 +145,7 @@ describe("Route Handler", () => {
       new Request("http://localhost/api/leads", {
         method: "POST",
         body: JSON.stringify(validBody),
+        headers: { Origin: "http://localhost" },
       }),
       new MemoryLeadRepository(),
       "8963",
@@ -160,6 +161,7 @@ describe("Route Handler", () => {
       new Request("http://localhost/api/leads", {
         method: "POST",
         body: JSON.stringify({ ...validBody, phone: "123" }),
+        headers: { Origin: "http://localhost" },
       }),
       new MemoryLeadRepository(),
     );
@@ -178,6 +180,7 @@ describe("Route Handler", () => {
       new Request("http://localhost/api/leads", {
         method: "POST",
         body: JSON.stringify(validBody),
+        headers: { Origin: "http://localhost" },
       }),
       failingRepository,
     );
@@ -192,6 +195,7 @@ describe("Route Handler", () => {
       new Request("http://localhost/api/leads", {
         method: "POST",
         body: JSON.stringify({ ...validBody, name: "x".repeat(17_000) }),
+        headers: { Origin: "http://localhost" },
       }),
       new MemoryLeadRepository(),
     );
