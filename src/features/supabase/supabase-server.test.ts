@@ -12,7 +12,7 @@ import type { LeadInsertPayload } from "../leads/types/lead";
 import { buildSupabaseServerHeaders } from "./server-headers";
 
 const url = "https://test.supabase.co";
-const modernCredential = "sb_secret_testonlyfixture_checksum";
+const modernCredential = "sb_secret_test-fixture.with~symbols";
 const legacyCredential = ["legacyHeader", "legacyPayload", "legacySignature"].join(".");
 const leadId = "11111111-1111-4111-8111-111111111111";
 const documentId = "22222222-2222-4222-8222-222222222222";
@@ -82,8 +82,13 @@ describe("Supabase server credential compatibility", () => {
       "placeholder",
       "<service-role-key>",
       "your-supabase-service-role-key",
-      "sb_secret_placeholder",
+      "sb_secret_",
+      " sb_secret_test",
+      "sb_secret_test ",
       "sb_secret_test fixture",
+      "sb_secret_test\rfixture",
+      "sb_secret_test\nfixture",
+      "sb_secret_test\u0000fixture",
       "opaque-unknown-credential",
     ];
     const calls: unknown[][] = [];
@@ -102,6 +107,20 @@ describe("Supabase server credential compatibility", () => {
       [console.log, console.info, console.warn, console.error] = originals;
     }
     assert.deepEqual(calls, []);
+  });
+
+  test("sb_secret_ aceita conteudo sintetico variado sem Authorization Bearer", () => {
+    const credentials = [
+      "sb_secret_a",
+      "sb_secret_synthetic-test.fixture~01",
+      "sb_secret_A_B-C.D~E",
+    ];
+
+    for (const credential of credentials) {
+      const headers = buildSupabaseServerHeaders(credential);
+      assert.equal(headers.apikey, credential);
+      assert.equal(headers.Authorization, undefined);
+    }
   });
 
   test("JWT legado mantém apikey e Authorization Bearer", async () => {

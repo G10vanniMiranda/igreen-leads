@@ -4,7 +4,7 @@ export type SupabaseServerHeaders = Readonly<{
 }>;
 
 const LEGACY_JWT_PATTERN = /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/;
-const MODERN_SECRET_PATTERN = /^sb_secret_[A-Za-z0-9]+_[A-Za-z0-9]+$/;
+const MODERN_SECRET_PREFIX = "sb_secret_";
 const PLACEHOLDER_PATTERN = /^(?:placeholder|change-?me|your[-_].*|<.*>)$/i;
 
 export class SupabaseServerCredentialError extends Error {
@@ -27,8 +27,8 @@ export function buildSupabaseServerHeaders(
     throw new SupabaseServerCredentialError();
   }
 
-  if (credential.startsWith("sb_secret_")) {
-    if (!MODERN_SECRET_PATTERN.test(credential)) throw new SupabaseServerCredentialError();
+  if (credential.startsWith(MODERN_SECRET_PREFIX)) {
+    if (credential.length === MODERN_SECRET_PREFIX.length) throw new SupabaseServerCredentialError();
     return Object.freeze({ apikey: credential });
   }
 
