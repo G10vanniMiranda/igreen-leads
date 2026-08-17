@@ -3,7 +3,7 @@ import { randomBytes } from "node:crypto";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import { ADMIN_COOKIE_NAME, createAdminSession, isSameOriginMutation } from "./auth";
-import { billHandler, loginHandler, notesHandler, statusHandler } from "./handlers";
+import { billHandler, loginHandler, logoutHandler, notesHandler, searchHandler, statusHandler } from "./handlers";
 import { SupabaseAdminRepository, type AdminRepository } from "./repository";
 import { BILL_SIGNED_URL_TTL_SECONDS } from "./signed-bill";
 import type { DashboardMetrics, LeadDetail, LeadFilters, LeadListItem, LeadStatus } from "./types";
@@ -36,12 +36,12 @@ class MockRepository implements AdminRepository {
   }
 }
 
-function formRequest(path: string, values: Record<string, string>, authenticated = true) {
+function formRequest(path: string, values: Record<string, string>, authenticated = true, requestOrigin = origin) {
   const body = new FormData();
   for (const [key, value] of Object.entries(values)) body.set(key, value);
   return new Request(`${origin}${path}`, {
     method: "POST", body,
-    headers: { Origin: origin, ...(authenticated ? { Cookie: sessionCookie } : {}) },
+    headers: { Origin: requestOrigin, ...(authenticated ? { Cookie: sessionCookie } : {}) },
   });
 }
 
@@ -137,6 +137,27 @@ test("18. payload com PII não é escrito em logs", async () => {
   try { await notesHandler(formRequest("/api/notes", { internalNotes: "telefone +5592999990000" }), leadId, new MockRepository()); }
   finally { [console.log, console.info, console.warn, console.error] = originals; }
   assert.deepEqual(calls, []);
+});
+
+test("19. mutações administrativas legítimas continuam aceitando mesma origem", async () => {
+  const repository = new MockRepository();
+  const notes = await notesHandler(formRequest("/api/notes", { internalNotes: "Nota técnica" }), leadId, repository);
+  const status = await statusHandler(formRequest("/api/status", { status: "QUALIFIED" }), leadId, repository);
+  const search = await searchHandler(formRequest("/api/search", { search: "Lead técnico" }));
+  const logout = logoutHandler(formRequest("/api/logout", {}));
+  assert.deepEqual([notes.status, status.status, search.status, logout.status], [303, 303, 303, 303]);
+});
+
+test("20. mutações administrativas continuam rejeitando origem externa", async () => {
+  const repository = new MockRepository();
+  const evilOrigin = "https://evil.example";
+  const notes = await notesHandler(formRequest("/api/notes", { internalNotes: "Nota técnica" }, true, evilOrigin), leadId, repository);
+  const status = await statusHandler(formRequest("/api/status", { status: "QUALIFIED" }, true, evilOrigin), leadId, repository);
+  const search = await searchHandler(formRequest("/api/search", { search: "Lead técnico" }, true, evilOrigin));
+  const logout = logoutHandler(formRequest("/api/logout", {}, true, evilOrigin));
+  assert.deepEqual([notes.status, status.status, search.status, logout.status], [403, 403, 403, 403]);
+  assert.equal(repository.notesCalls.length, 0);
+  assert.equal(repository.statusCalls.length, 0);
 });
 
 function migrationSql() {

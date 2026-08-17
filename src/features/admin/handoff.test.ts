@@ -2,8 +2,11 @@ import assert from "node:assert/strict";
 import { randomBytes } from "node:crypto";
 import { readFileSync } from "node:fs";
 import test from "node:test";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { ADMIN_COOKIE_NAME, createAdminSession } from "./auth";
 import { buildCommercialIGreenUrl, buildWhatsAppMessage, buildWhatsAppUrl, normalizeWhatsAppPhone } from "./handoff";
+import { HandoffActionForm } from "./handoff-action-form";
 import { handoffHandler, statusHandler } from "./handlers";
 import type { AdminRepository } from "./repository";
 import { eventDescription, eventLabel } from "./timeline";
@@ -56,6 +59,20 @@ function actionRequest(path: string, authenticated = true, requestOrigin = origi
   });
 }
 
+test("formulário de handoff preserva Origin e isolamento da nova aba", () => {
+  const markup = renderToStaticMarkup(
+    createElement(HandoffActionForm, {
+      action: "/api/admin/leads/lead-id/whatsapp",
+      actionId,
+      label: "Chamar no WhatsApp",
+      pendingLabel: "Abrindo WhatsApp",
+    }),
+  );
+  assert.match(markup, /target="_blank"/);
+  assert.match(markup, /rel="noopener"/);
+  assert.doesNotMatch(markup, /noreferrer/);
+});
+
 test("1. admin não autenticado não acessa ações de handoff", async () => {
   const repository = new HandoffRepository();
   const response = await handoffHandler(actionRequest("/api/whatsapp", false), leadId, "whatsapp", repository);
@@ -78,6 +95,7 @@ test("4. ação WhatsApp registra whatsapp_opened", async () => {
   const repository = new HandoffRepository();
   const response = await handoffHandler(actionRequest("/api/whatsapp"), leadId, "whatsapp", repository);
   assert.equal(response.status, 303);
+  assert.equal(response.headers.get("referrer-policy"), "no-referrer");
   assert.deepEqual(repository.eventCalls, [[leadId, "whatsapp_opened", actionId]]);
 });
 
@@ -110,6 +128,7 @@ test("10. ação iGreen registra igreen_handoff_opened", async () => {
   const repository = new HandoffRepository();
   const response = await handoffHandler(actionRequest("/api/igreen"), leadId, "igreen", repository);
   assert.equal(response.status, 303);
+  assert.equal(response.headers.get("referrer-policy"), "no-referrer");
   assert.deepEqual(repository.eventCalls, [[leadId, "igreen_handoff_opened", actionId]]);
 });
 
@@ -149,10 +168,16 @@ test("17. erro interno não vaza PII nem secrets", async () => {
 });
 
 test("18. ação exige autenticação e origem válida", async () => {
-  const repository = new HandoffRepository();
-  const response = await handoffHandler(actionRequest("/api/whatsapp", true, "https://evil.example"), leadId, "whatsapp", repository);
-  assert.equal(response.status, 403);
-  assert.equal(repository.eventCalls.length, 0);
+  for (const requestOrigin of [undefined, "null", "https://evil.example"] as const) {
+    const repository = new HandoffRepository();
+    const body = new FormData(); body.set("actionId", actionId);
+    const headers = new Headers({ Cookie: sessionCookie });
+    if (requestOrigin !== undefined) headers.set("Origin", requestOrigin);
+    const request = new Request(`${origin}/api/whatsapp`, { method: "POST", body, headers });
+    const response = await handoffHandler(request, leadId, "whatsapp", repository);
+    assert.equal(response.status, 403);
+    assert.equal(repository.eventCalls.length, 0);
+  }
 });
 
 test("19. migration tolera retry por action_id sem impedir novas ações", () => {

@@ -34,7 +34,7 @@ export function HandoffActionForm({
   }
 
   return (
-    <form action={action} method="post" target="_blank" rel="noopener noreferrer" onSubmit={handleSubmit}>
+    <form action={action} method="post" target="_blank" rel="noopener" onSubmit={handleSubmit}>
       <input type="hidden" name="actionId" value={actionId} />
       <button type="submit" disabled={submitting} className={`admin-action-button admin-action-${variant}`}>
         {submitting ? pendingLabel : label}
