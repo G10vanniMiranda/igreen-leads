@@ -4,7 +4,7 @@ function enabled(value: string | undefined): boolean {
   return value?.trim().toLowerCase() === "true";
 }
 
-const ADMIN_HANDOFF_FORM_ACTION_SOURCES = ["https://wa.me", "https://green.igreenenergy.com.br"] as const;
+const ADMIN_HANDOFF_FORM_ACTION_SOURCES = ["https://wa.me", "https://api.whatsapp.com", "https://green.igreenenergy.com.br"] as const;
 
 function buildPolicy(env: SecurityEnvironment, formActionSources: readonly string[]): string {
   const development = env.NODE_ENV === "development";

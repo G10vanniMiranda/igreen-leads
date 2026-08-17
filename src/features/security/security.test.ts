@@ -150,9 +150,10 @@ describe("rotas, headers e indexação", () => {
   test("21. CSP administrativa permite somente os destinos HTTPS aprovados para handoff", () => {
     const csp = buildAdminContentSecurityPolicy({});
     const formAction = csp.split("; ").find((directive) => directive.startsWith("form-action "));
-    assert.equal(formAction, "form-action 'self' https://wa.me https://green.igreenenergy.com.br");
+    assert.equal(formAction, "form-action 'self' https://wa.me https://api.whatsapp.com https://green.igreenenergy.com.br");
     assert.doesNotMatch(formAction!, /\*/);
     assert.doesNotMatch(formAction!, /(?:^|\s)http:/);
+    assert.doesNotMatch(formAction!, /https:\/\/(?:www\.)?whatsapp\.com|facebook\.com/);
   });
 
   test("22. CSP pública continua limitando formulários à mesma origem", () => {
