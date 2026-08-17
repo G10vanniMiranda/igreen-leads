@@ -104,10 +104,14 @@ describe("consentimento e tracking", () => {
 });
 
 describe("rotas, headers e indexação", () => {
-  test("12. rota pública de privacidade existe e não inventa email", async () => {
+  test("12. rota pública de privacidade publica somente o canal oficial aprovado", async () => {
     const source = await readFile("src/app/privacidade/page.tsx", "utf8");
     assert.match(source, /Política de Privacidade/);
-    assert.doesNotMatch(source, /[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}/);
+    const emailAddresses = source.match(/[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}/g) ?? [];
+    assert.deepEqual([...new Set(emailAddresses)], ["giovannimiranda09@gmail.com"]);
+    assert.match(source, /mailto:giovannimiranda09@gmail\.com/);
+    assert.match(source, /acesso[\s\S]*correção[\s\S]*exclusão[\s\S]*revogação/i);
+    assert.doesNotMatch(source, /será disponibilizado|bloqueio para Production Readiness/i);
   });
 
   test("13. admin declara noindex e nofollow", async () => {

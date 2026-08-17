@@ -1,4 +1,5 @@
 import type { BillRegistration, BillUploadTarget, ValidatedBill } from "../types/document";
+import { buildSupabaseServerHeaders } from "../../supabase/server-headers";
 
 type RpcTarget = Readonly<{ lead_id: string; existing_document_id: string | null }>;
 type RpcRegistration = Readonly<{ document_id: string; created: boolean }>;
@@ -62,8 +63,7 @@ export class SupabaseDocumentRepository implements DocumentRepository {
       method: "POST",
       cache: "no-store",
       headers: {
-        apikey: this.serviceRoleKey,
-        Authorization: `Bearer ${this.serviceRoleKey}`,
+        ...buildSupabaseServerHeaders(this.serviceRoleKey),
         "Content-Type": "application/json",
       },
       body: JSON.stringify(body),

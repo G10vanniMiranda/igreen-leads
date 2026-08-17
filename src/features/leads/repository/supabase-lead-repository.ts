@@ -1,5 +1,6 @@
 import type { LeadRepository } from "../services/lead-submission";
 import type { LeadInsertPayload, LeadPersistenceResult } from "../types/lead";
+import { buildSupabaseServerHeaders } from "../../supabase/server-headers";
 
 type RpcResult = Readonly<{ lead_id: string; created: boolean }>;
 
@@ -23,8 +24,7 @@ export class SupabaseLeadRepository implements LeadRepository {
       method: "POST",
       cache: "no-store",
       headers: {
-        apikey: this.serviceRoleKey,
-        Authorization: `Bearer ${this.serviceRoleKey}`,
+        ...buildSupabaseServerHeaders(this.serviceRoleKey),
         "Content-Type": "application/json",
       },
       body: JSON.stringify({

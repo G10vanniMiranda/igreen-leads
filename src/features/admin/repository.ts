@@ -1,5 +1,6 @@
 import type { DashboardMetrics, LeadDetail, LeadFilters, LeadListItem, LeadStatus } from "./types";
 import type { HandoffEventType } from "./handoff";
+import { buildSupabaseServerHeaders } from "../supabase/server-headers";
 
 type StatusResult = Readonly<{ previous_status: string; current_status: string; changed: boolean }>;
 type BillDocument = Readonly<{ storage_bucket: string; storage_path: string }>;
@@ -75,7 +76,7 @@ export class SupabaseAdminRepository implements AdminRepository {
     if (!this.url || !this.serviceRoleKey) throw new AdminRepositoryError("configuration");
     const response = await fetch(`${this.url.replace(/\/$/, "")}/rest/v1/rpc/${name}`, {
       method: "POST", cache: "no-store",
-      headers: { apikey: this.serviceRoleKey, Authorization: `Bearer ${this.serviceRoleKey}`, "Content-Type": "application/json" },
+      headers: { ...buildSupabaseServerHeaders(this.serviceRoleKey), "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
     if (!response.ok) throw new AdminRepositoryError(response.status === 404 ? "not_found" : "upstream");

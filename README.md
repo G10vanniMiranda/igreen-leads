@@ -6,6 +6,12 @@ painel administrativo, encaminhamento comercial, atribuição e controles de
 privacidade e segurança. O roadmap versionado está em
 [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md).
 
+As políticas e os procedimentos operacionais de lançamento estão registrados em
+[`docs/PRIVACY_DATA_MAP.md`](docs/PRIVACY_DATA_MAP.md),
+[`docs/DATA_SUBJECT_REQUESTS.md`](docs/DATA_SUBJECT_REQUESTS.md),
+[`docs/SECURITY.md`](docs/SECURITY.md) e
+[`docs/PRODUCTION_OPERATIONS.md`](docs/PRODUCTION_OPERATIONS.md).
+
 ## Ambiente local
 
 Copie `.env.example` para `.env.local` e ajuste os valores da operação. O ID de

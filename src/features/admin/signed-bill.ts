@@ -1,3 +1,5 @@
+import { buildSupabaseServerHeaders } from "../supabase/server-headers";
+
 export const BILL_SIGNED_URL_TTL_SECONDS = 120;
 
 export class SignedBillError extends Error {
@@ -59,7 +61,7 @@ export async function createSignedBillUrl(
   const objectPath = encodedObjectPath(bucket, path);
   const response = await fetch(
     `${origin.origin}/storage/v1/object/sign/${objectPath}`,
-    { method: "POST", cache: "no-store", headers: { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+    { method: "POST", cache: "no-store", headers: { ...buildSupabaseServerHeaders(key), "Content-Type": "application/json" },
       body: JSON.stringify({ expiresIn: BILL_SIGNED_URL_TTL_SECONDS }) },
   );
   if (!response.ok) throw new SignedBillError();

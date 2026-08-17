@@ -10,7 +10,7 @@ import type { DashboardMetrics, LeadDetail, LeadFilters, LeadListItem, LeadStatu
 
 process.env.ADMIN_PASSWORD = randomBytes(24).toString("base64url");
 process.env.ADMIN_SESSION_SECRET = randomBytes(48).toString("base64url");
-const testServiceKey = randomBytes(32).toString("base64url");
+const testServiceKey = ["testHeader", "testPayload", "testSignature"].join(".");
 
 const leadId = "11111111-1111-4111-8111-111111111111";
 const origin = "http://localhost:3000";

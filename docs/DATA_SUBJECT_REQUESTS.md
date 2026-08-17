@@ -1,14 +1,24 @@
 # Data Subject Requests — Operational Readiness
 
-TASK 9 does not create a self-service portal and does not define legal response deadlines. This document is the minimum future operating procedure; it must receive legal/operational ownership before Production.
+This document defines the initial operating procedure. It does not create a self-service portal, assign legal roles or define universal legal response deadlines.
 
-## Production prerequisite
+## Official initial channel
 
-A specific privacy request channel, accountable owner, identity-verification method, retention policy and response register must be approved before public operation. No email address is invented in the application.
+Requests related to personal data must be received through `giovannimiranda09@gmail.com`. This is only the official privacy contact channel for the initial launch; it does not designate a DPO, controller, processor or other legal role.
+
+## Operational retention
+
+- Leads without progress: 90 days after the last interaction.
+- Bills and document metadata for leads without progress: 90 days after the last interaction.
+- Bills and document metadata for completed or handed-off leads: 90 days after operational completion, unless a specific legitimate need requires retention.
+- Operational events and audit trail: 12 months.
+- `internal_notes`: the same retention period as the associated lead.
+
+These are operational periods defined by the product, not claims of universal legal deadlines. Valid deletion requests are evaluated and executed when no legitimate reason for retention remains.
 
 ## Request intake and handling
 
-1. Receive the request through the future approved privacy channel.
+1. Receive the request through the official initial privacy channel.
 2. Record only the minimum information needed to understand the request.
 3. Verify identity proportionally before revealing, changing or deleting personal data. Never request an electricity bill merely as a default identity proof.
 4. Classify the request as access, correction, deletion, objection/restriction, or consent/preference revocation.

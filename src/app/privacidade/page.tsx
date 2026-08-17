@@ -13,7 +13,7 @@ export default function PrivacyPage() {
         <Link href="/" className="privacy-back">← Voltar ao início</Link>
         <p className="privacy-kicker">Transparência</p>
         <h1>Política de Privacidade</h1>
-        <p className="privacy-updated">Versão operacional de 14 de agosto de 2026.</p>
+        <p className="privacy-updated">Versão operacional de 17 de agosto de 2026.</p>
         <p>
           Esta política descreve o funcionamento atual do iGreen Leads. Ela não substitui aconselhamento jurídico e não declara conformidade absoluta com a LGPD.
         </p>
@@ -45,17 +45,20 @@ export default function PrivacyPage() {
 
         <h2>Segurança e retenção</h2>
         <p>
-          Aplicamos controles técnicos proporcionais, incluindo validação, armazenamento privado, autenticação administrativa, logs minimizados e limitação básica contra abuso. Nenhum sistema é isento de risco. A política definitiva de retenção será definida antes de Production e os dados não devem ser mantidos além da finalidade aprovada.
+          Aplicamos controles técnicos proporcionais, incluindo validação, armazenamento privado, autenticação administrativa, logs minimizados e limitação básica contra abuso. Nenhum sistema é isento de risco.
+        </p>
+        <p>
+          Como política operacional inicial do produto, leads sem avanço e suas faturas são mantidos por até 90 dias após a última interação. Faturas de leads concluídos ou encaminhados são mantidas por até 90 dias após a conclusão operacional, salvo necessidade legítima específica. Eventos de auditoria operacional são mantidos por 12 meses, e notas internas seguem o mesmo prazo aplicável ao lead. Esses são prazos operacionais definidos para este produto, não prazos legais universais.
         </p>
 
         <h2>Seus direitos e preferências</h2>
         <p>
-          Solicitações futuras poderão envolver acesso, correção, exclusão e revogação, conforme avaliação da identidade, do contexto e das obrigações aplicáveis. Você pode alterar ou revogar preferências de analytics e publicidade a qualquer momento pelo link “Preferências de cookies”. A revogação impede novos eventos, mas não promete apagar retroativamente dados já enviados a terceiros.
+          Solicitações de acesso, correção, exclusão e revogação, quando aplicável, serão avaliadas após verificação proporcional da identidade e do contexto. Solicitações válidas de exclusão serão executadas quando não houver motivo legítimo para retenção. Você pode alterar ou revogar preferências de analytics e publicidade a qualquer momento pelo link “Preferências de cookies”. A revogação impede novos eventos, mas não promete apagar retroativamente dados já enviados a terceiros.
         </p>
 
         <h2>Canal de privacidade</h2>
         <p>
-          Um canal específico para solicitações de privacidade será disponibilizado antes da operação pública. A ausência desse canal é um bloqueio para Production Readiness.
+          Para solicitações relacionadas a dados pessoais no lançamento inicial, entre em contato pelo e-mail <a href="mailto:giovannimiranda09@gmail.com">giovannimiranda09@gmail.com</a>. Este endereço é somente o canal oficial de contato para privacidade; sua publicação não atribui função de encarregado, controlador ou operador ao titular da conta.
         </p>
       </article>
     </main>

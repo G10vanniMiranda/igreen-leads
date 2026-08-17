@@ -2,15 +2,25 @@
 
 This inventory describes the implementation as of TASK 9. It is an engineering record, not a legal classification or a declaration of LGPD compliance.
 
-**RETENTION POLICY: TO BE DEFINED BEFORE PRODUCTION**
+## Initial operational retention policy
 
-No automatic retention/deletion schedule exists. Production requires an approved retention matrix, accountable owner, privacy request channel, and operational deletion procedure.
+These periods are operational product decisions, not claims of universal legal deadlines:
+
+| Record | Initial operational retention |
+| --- | --- |
+| Leads without operational progress | 90 days after the last interaction |
+| Bills and document metadata for leads without progress | 90 days after the last interaction |
+| Bills and document metadata for completed or handed-off leads | 90 days after operational completion, unless a specific legitimate need requires retention |
+| Operational events and audit trail | 12 months |
+| `internal_notes` | The same retention period as the associated lead |
+
+Valid deletion requests are evaluated operationally and executed when no legitimate reason for retention remains. The application does not yet automate these deletions; the approved procedure is documented in [`DATA_SUBJECT_REQUESTS.md`](DATA_SUBJECT_REQUESTS.md). The official initial privacy contact channel is `giovannimiranda09@gmail.com`.
 
 ## Lead and qualification data
 
 | Data | Purpose | Origin | Storage | Access | Current sharing | Operational sensitivity and main risks |
 | --- | --- | --- | --- | --- | --- | --- |
-| Name and WhatsApp | Identify the request and contact the requester about the requested analysis | Visitor | `private.leads` in Supabase TEST | Server-side service role and authenticated admin | Infrastructure providers; no automated marketing sharing | Direct identifiers; unauthorized access, misuse, logs, exports |
+| Name and WhatsApp | Identify the request and contact the requester about the requested analysis | Visitor | `private.leads` in the isolated Supabase environment | Server-side service role and authenticated admin | Infrastructure providers; no automated marketing sharing | Direct identifiers; unauthorized access, misuse, logs, exports |
 | Unit type, state, utility provider, bill range | Initial qualification and operational analysis | Visitor | `private.leads` | Server and admin | Infrastructure providers | Profiling/context risk if combined with identifiers |
 | Account-holder and social-benefit answers | Determine whether manual review is needed | Visitor | `private.leads` | Server and admin | Infrastructure providers | Higher operational sensitivity; discrimination or excessive use |
 | `consent_contact` and timestamp | Record that contact was requested for this service | Visitor action | `private.leads` | Server and admin | Infrastructure providers | Must not be reused as analytics/advertising consent |

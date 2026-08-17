@@ -1,4 +1,5 @@
 import type { ValidatedBill } from "../types/document";
+import { buildSupabaseServerHeaders } from "../../supabase/server-headers";
 
 export class DocumentStorageError extends Error {
   constructor(public readonly errorClass: "configuration" | "upload" | "cleanup") {
@@ -39,8 +40,7 @@ export class SupabaseDocumentStorage implements DocumentStorage {
       ...init,
       cache: "no-store",
       headers: {
-        apikey: this.serviceRoleKey,
-        Authorization: `Bearer ${this.serviceRoleKey}`,
+        ...buildSupabaseServerHeaders(this.serviceRoleKey),
         ...init.headers,
       },
     });
