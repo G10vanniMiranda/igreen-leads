@@ -104,13 +104,67 @@ test("10. fatura privada exige sessão e redireciona somente após assinatura se
   const unauthorized = await billHandler(new Request(`${origin}/api/admin/leads/${leadId}/bill`), leadId, repository);
   assert.equal(unauthorized.status, 401);
   const original = globalThis.fetch;
-  globalThis.fetch = (async () => Response.json({ signedURL: "/storage/v1/object/sign/lead-documents/token" })) as typeof fetch;
+  globalThis.fetch = (async () => Response.json({ signedURL: `/object/sign/lead-documents/${leadId}/bill.pdf?token=temporary-token` })) as typeof fetch;
   process.env.SUPABASE_URL = "https://test.supabase.co"; process.env.SUPABASE_SERVICE_ROLE_KEY = testServiceKey;
-  try { const response = await billHandler(new Request(`${origin}/api/admin/leads/${leadId}/bill`, { headers: { Cookie: sessionCookie } }), leadId, repository); assert.equal(response.status, 303); assert.match(response.headers.get("location")!, /^https:\/\/test\.supabase\.co\/storage\/v1\/object\/sign\//); }
+  try {
+    const response = await billHandler(new Request(`${origin}/api/admin/leads/${leadId}/bill`, { headers: { Cookie: sessionCookie } }), leadId, repository);
+    assert.equal(response.status, 303);
+    assert.equal(response.headers.get("location"), `https://test.supabase.co/storage/v1/object/sign/lead-documents/${leadId}/bill.pdf?token=temporary-token`);
+  }
   finally { globalThis.fetch = original; }
 });
 
-test("11. signed URL usa TTL curto aprovado", () => {
+async function signedBillResponse(signedURL: string, responseStatus = 200) {
+  const repository = new MockRepository();
+  const original = globalThis.fetch;
+  globalThis.fetch = (async () => responseStatus === 200
+    ? Response.json({ signedURL })
+    : Response.json({ error: "Object not found", internal: "temporary-token" }, { status: responseStatus })) as typeof fetch;
+  process.env.SUPABASE_URL = "https://test.supabase.co";
+  process.env.SUPABASE_SERVICE_ROLE_KEY = testServiceKey;
+  try {
+    return await billHandler(new Request(`${origin}/api/admin/leads/${leadId}/bill`, { headers: { Cookie: sessionCookie } }), leadId, repository);
+  } finally {
+    globalThis.fetch = original;
+  }
+}
+
+test("11. signed URL já canônica permanece sob a API privada de Storage", async () => {
+  const response = await signedBillResponse(`/storage/v1/object/sign/lead-documents/${leadId}/bill.pdf?token=temporary-token`);
+  assert.equal(response.status, 303);
+  assert.equal(response.headers.get("location"), `https://test.supabase.co/storage/v1/object/sign/lead-documents/${leadId}/bill.pdf?token=temporary-token`);
+});
+
+test("12. signed URL absoluta é aceita somente no origin Supabase autorizado", async () => {
+  const accepted = await signedBillResponse(`https://test.supabase.co/object/sign/lead-documents/${leadId}/bill.pdf?token=temporary-token`);
+  const external = await signedBillResponse(`https://evil.example/object/sign/lead-documents/${leadId}/bill.pdf?token=temporary-token`);
+  assert.equal(accepted.headers.get("location"), `https://test.supabase.co/storage/v1/object/sign/lead-documents/${leadId}/bill.pdf?token=temporary-token`);
+  assert.equal(external.status, 500);
+  assert.deepEqual(await external.json(), { error: "Internal error" });
+});
+
+test("13. protocolo inesperado e URL pública ou permanente são rejeitados", async () => {
+  const insecure = await signedBillResponse(`http://test.supabase.co/object/sign/lead-documents/${leadId}/bill.pdf?token=temporary-token`);
+  const publicUrl = await signedBillResponse(`/storage/v1/object/public/lead-documents/${leadId}/bill.pdf`);
+  const authenticatedUrl = await signedBillResponse(`/storage/v1/object/authenticated/lead-documents/${leadId}/bill.pdf`);
+  assert.deepEqual([insecure.status, publicUrl.status, authenticatedUrl.status], [500, 500, 500]);
+});
+
+test("14. objeto inexistente falha com erro genérico sem registrar token", async () => {
+  const calls: unknown[][] = [];
+  const originals = [console.log, console.info, console.warn, console.error];
+  console.log = console.info = console.warn = console.error = (...args: unknown[]) => { calls.push(args); };
+  try {
+    const response = await signedBillResponse("", 404);
+    assert.equal(response.status, 500);
+    assert.deepEqual(await response.json(), { error: "Internal error" });
+    assert.deepEqual(calls, []);
+  } finally {
+    [console.log, console.info, console.warn, console.error] = originals;
+  }
+});
+
+test("15. signed URL usa TTL curto aprovado", () => {
   assert.equal(BILL_SIGNED_URL_TTL_SECONDS, 120); assert.ok(BILL_SIGNED_URL_TTL_SECONDS >= 60 && BILL_SIGNED_URL_TTL_SECONDS <= 300);
 });
 test("12. atualização válida de status chega ao repository", async () => {

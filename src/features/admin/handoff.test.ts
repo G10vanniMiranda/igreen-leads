@@ -14,7 +14,7 @@ import type { DashboardMetrics, LeadDetail, LeadListItem, LeadStatus } from "./t
 
 process.env.ADMIN_PASSWORD = randomBytes(24).toString("base64url");
 process.env.ADMIN_SESSION_SECRET = randomBytes(48).toString("base64url");
-process.env.IGREEN_BASE_URL = "https://green.example.test/continuar";
+process.env.IGREEN_BASE_URL = "https://green.igreenenergy.com.br/continuar";
 process.env.IGREEN_REFERRAL_ID = "referral-configurado";
 process.env.IGREEN_SEND_CONTRACT = "true";
 
@@ -95,6 +95,7 @@ test("4. ação WhatsApp registra whatsapp_opened", async () => {
   const repository = new HandoffRepository();
   const response = await handoffHandler(actionRequest("/api/whatsapp"), leadId, "whatsapp", repository);
   assert.equal(response.status, 303);
+  assert.equal(new URL(response.headers.get("location")!).hostname, "wa.me");
   assert.equal(response.headers.get("referrer-policy"), "no-referrer");
   assert.deepEqual(repository.eventCalls, [[leadId, "whatsapp_opened", actionId]]);
 });
@@ -107,7 +108,7 @@ test("5. clique WhatsApp não muda status", async () => {
 
 test("6. URL iGreen usa exclusivamente a configuração tipada", () => {
   const url = buildCommercialIGreenUrl();
-  assert.equal(url.origin + url.pathname, "https://green.example.test/continuar");
+  assert.equal(url.origin + url.pathname, "https://green.igreenenergy.com.br/continuar");
 });
 
 test("7. URL iGreen contém referral ID configurado", () => {
@@ -128,6 +129,7 @@ test("10. ação iGreen registra igreen_handoff_opened", async () => {
   const repository = new HandoffRepository();
   const response = await handoffHandler(actionRequest("/api/igreen"), leadId, "igreen", repository);
   assert.equal(response.status, 303);
+  assert.equal(new URL(response.headers.get("location")!).hostname, "green.igreenenergy.com.br");
   assert.equal(response.headers.get("referrer-policy"), "no-referrer");
   assert.deepEqual(repository.eventCalls, [[leadId, "igreen_handoff_opened", actionId]]);
 });

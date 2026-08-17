@@ -1,5 +1,5 @@
 import type { NextConfig } from "next";
-import { createSecurityHeaders } from "./src/config/security-headers";
+import { createAdminSecurityHeaders, createSecurityHeaders } from "./src/config/security-headers";
 
 const nextConfig: NextConfig = {
   async headers() {
@@ -9,8 +9,8 @@ const nextConfig: NextConfig = {
     ];
     return [
       { source: "/:path*", headers: createSecurityHeaders(process.env) },
-      { source: "/admin/:path*", headers: privateHeaders },
-      { source: "/api/admin/:path*", headers: privateHeaders },
+      { source: "/admin/:path*", headers: [...createAdminSecurityHeaders(process.env), ...privateHeaders] },
+      { source: "/api/admin/:path*", headers: [...createAdminSecurityHeaders(process.env), ...privateHeaders] },
       { source: "/api/leads", headers: [{ key: "Cache-Control", value: "private, no-store" }] },
       { source: "/api/lead-documents", headers: [{ key: "Cache-Control", value: "private, no-store" }] },
     ];

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { randomBytes } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { describe, test } from "node:test";
-import { buildContentSecurityPolicy, createSecurityHeaders } from "../../config/security-headers.ts";
+import { buildAdminContentSecurityPolicy, buildContentSecurityPolicy, createSecurityHeaders } from "../../config/security-headers.ts";
 import { ADMIN_COOKIE_NAME, ADMIN_PASSWORD_MIN_LENGTH, verifyAdminPassword } from "../admin/auth.ts";
 import { loginHandler } from "../admin/handlers.ts";
 import {
@@ -145,6 +145,20 @@ describe("rotas, headers e indexação", () => {
   test("20. HSTS só é emitido em Production HTTPS explicitamente habilitado", () => {
     assert.equal(createSecurityHeaders({ NODE_ENV: "development", SECURITY_HTTPS_HEADERS_ENABLED: "true" }).some((header) => header.key === "Strict-Transport-Security"), false);
     assert.equal(createSecurityHeaders({ NODE_ENV: "production", SECURITY_HTTPS_HEADERS_ENABLED: "true" }).some((header) => header.key === "Strict-Transport-Security"), true);
+  });
+
+  test("21. CSP administrativa permite somente os destinos HTTPS aprovados para handoff", () => {
+    const csp = buildAdminContentSecurityPolicy({});
+    const formAction = csp.split("; ").find((directive) => directive.startsWith("form-action "));
+    assert.equal(formAction, "form-action 'self' https://wa.me https://green.igreenenergy.com.br");
+    assert.doesNotMatch(formAction!, /\*/);
+    assert.doesNotMatch(formAction!, /(?:^|\s)http:/);
+  });
+
+  test("22. CSP pública continua limitando formulários à mesma origem", () => {
+    const csp = buildContentSecurityPolicy({});
+    const formAction = csp.split("; ").find((directive) => directive.startsWith("form-action "));
+    assert.equal(formAction, "form-action 'self'");
   });
 });
 

@@ -4,7 +4,9 @@ function enabled(value: string | undefined): boolean {
   return value?.trim().toLowerCase() === "true";
 }
 
-export function buildContentSecurityPolicy(env: SecurityEnvironment): string {
+const ADMIN_HANDOFF_FORM_ACTION_SOURCES = ["https://wa.me", "https://green.igreenenergy.com.br"] as const;
+
+function buildPolicy(env: SecurityEnvironment, formActionSources: readonly string[]): string {
   const development = env.NODE_ENV === "development";
   const externalEnvironment = env.ANALYTICS_ENVIRONMENT === "test" || env.ANALYTICS_ENVIRONMENT === "preview";
   const ga = externalEnvironment && enabled(env.GA_ENABLED) && Boolean(env.GA_MEASUREMENT_ID?.trim());
@@ -33,7 +35,7 @@ export function buildContentSecurityPolicy(env: SecurityEnvironment): string {
     `connect-src ${connectSources.join(" ")}`,
     "object-src 'none'",
     "base-uri 'self'",
-    "form-action 'self'",
+    `form-action 'self'${formActionSources.length ? ` ${formActionSources.join(" ")}` : ""}`,
     "frame-ancestors 'none'",
     "frame-src 'none'",
     "media-src 'none'",
@@ -42,6 +44,14 @@ export function buildContentSecurityPolicy(env: SecurityEnvironment): string {
   ];
   if (enabled(env.SECURITY_HTTPS_HEADERS_ENABLED)) directives.push("upgrade-insecure-requests");
   return `${directives.join("; ")};`;
+}
+
+export function buildContentSecurityPolicy(env: SecurityEnvironment): string {
+  return buildPolicy(env, []);
+}
+
+export function buildAdminContentSecurityPolicy(env: SecurityEnvironment): string {
+  return buildPolicy(env, ADMIN_HANDOFF_FORM_ACTION_SOURCES);
 }
 
 export function createSecurityHeaders(env: SecurityEnvironment): Array<{ key: string; value: string }> {
@@ -59,4 +69,10 @@ export function createSecurityHeaders(env: SecurityEnvironment): Array<{ key: st
     headers.push({ key: "X-Robots-Tag", value: "noindex, nofollow" });
   }
   return headers;
+}
+
+export function createAdminSecurityHeaders(env: SecurityEnvironment): Array<{ key: string; value: string }> {
+  return createSecurityHeaders(env).map((header) => header.key === "Content-Security-Policy"
+    ? { ...header, value: buildAdminContentSecurityPolicy(env) }
+    : header);
 }
