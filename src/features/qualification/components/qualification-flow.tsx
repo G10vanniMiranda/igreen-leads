@@ -13,7 +13,11 @@ import {
   BillValidationError,
   validateBillSelection,
 } from "../../documents/schemas/bill-upload";
-import type { BillUploadResponse } from "../../documents/types/document";
+import {
+  BILL_UPLOAD_HELP_TEXT,
+  BILL_UPLOAD_SIZE_ERROR_MESSAGE,
+  type BillUploadResponse,
+} from "../../documents/types/document";
 import {
   INITIAL_BILL_UPLOAD_STATE,
   billUploadUiReducer,
@@ -280,7 +284,7 @@ export function QualificationFlow() {
       dispatchBillUpload({
         type: "selection_error",
         message: error instanceof BillValidationError && error.reason === "size"
-          ? "O arquivo deve ter no máximo 10 MB."
+          ? BILL_UPLOAD_SIZE_ERROR_MESSAGE
           : "Envie uma fatura em PDF, JPG ou PNG.",
       });
     }
@@ -491,7 +495,7 @@ export function QualificationFlow() {
           <div className="bill-upload-fields">
             <label className="bill-upload-picker">
               <span className="bill-upload-picker-title">Selecionar fatura</span>
-              <span className="bill-upload-picker-help">PDF, JPG ou PNG · máximo de 10 MB</span>
+              <span className="bill-upload-picker-help">{BILL_UPLOAD_HELP_TEXT}</span>
               <input
                 type="file"
                 name="bill"

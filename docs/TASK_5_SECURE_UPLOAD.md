@@ -15,6 +15,8 @@ The server validates filename length and traversal characters, size, MIME,
 extension coherence, and the PDF/JPEG/PNG magic bytes. It generates
 `<lead_id>/<document_id>.<ext>` so neither PII nor the original filename appears
 in the Storage path. The original filename is retained only as private metadata.
+The application accepts at most 4 MiB (4,194,304 bytes) per bill and enforces
+that boundary again in the Route Handler before any Storage persistence.
 
 ## Storage/database consistency
 

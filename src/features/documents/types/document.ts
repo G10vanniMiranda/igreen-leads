@@ -1,5 +1,8 @@
 export const BILL_BUCKET = "lead-documents" as const;
-export const MAX_BILL_BYTES = 10 * 1024 * 1024;
+export const MAX_BILL_BYTES = 4 * 1024 * 1024;
+const MAX_BILL_MEBIBYTES = MAX_BILL_BYTES / (1024 * 1024);
+export const BILL_UPLOAD_HELP_TEXT = `PDF, JPG ou PNG · Tamanho máximo: ${MAX_BILL_MEBIBYTES} MB`;
+export const BILL_UPLOAD_SIZE_ERROR_MESSAGE = `O arquivo deve ter no máximo ${MAX_BILL_MEBIBYTES} MB.`;
 
 export const BILL_MIME_TYPES = [
   "application/pdf",

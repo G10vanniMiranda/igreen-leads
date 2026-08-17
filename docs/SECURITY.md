@@ -30,9 +30,9 @@ The CSP allows only same-origin resources by default. Meta/GA origins are added 
 
 ## Upload controls
 
-The application enforces one file, a 10 MB request/file limit, PDF/JPEG/PNG allowlist, matching extension and MIME, filename bounds/path traversal checks, magic bytes plus terminal markers, simple PDF/HTML polyglot rejection, opaque paths, private Storage and compensating cleanup. It does not publish object URLs.
+The application enforces one file, a 4 MiB (4,194,304-byte) request/file limit, PDF/JPEG/PNG allowlist, matching extension and MIME, filename bounds/path traversal checks, magic bytes plus terminal markers, simple PDF/HTML polyglot rejection, opaque paths, private Storage and compensating cleanup. It does not publish object URLs.
 
-MALWARE SCANNING: NOT IMPLEMENTED. Complex polyglots, malicious content inside otherwise valid documents and decompression/parser threats are residual Production risks. The 10 MB limit is reasonable for scanned bills but must be reconciled with final hosting limits and shared abuse controls.
+MALWARE SCANNING: NOT IMPLEMENTED. Complex polyglots, malicious content inside otherwise valid documents and decompression/parser threats are residual Production risks. The temporary 4 MiB limit keeps uploads within the approved Vercel Function path; a future direct-to-Storage design is outside this release scope.
 
 ## Logging and errors
 

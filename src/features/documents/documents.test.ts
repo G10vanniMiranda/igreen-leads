@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
+import { MemoryRateLimiter } from "../security/rate-limit";
 import type { DocumentRepository } from "./repository/supabase-document-repository";
 import { DocumentRepositoryError } from "./repository/supabase-document-repository";
 import {
@@ -11,7 +12,11 @@ import {
 import { handleBillUploadPost } from "./services/bill-upload-route-handler";
 import { uploadBill } from "./services/bill-upload";
 import type { DocumentStorage } from "./storage/supabase-document-storage";
-import { MAX_BILL_BYTES, type ValidatedBill } from "./types/document";
+import {
+  BILL_UPLOAD_HELP_TEXT,
+  BILL_UPLOAD_SIZE_ERROR_MESSAGE,
+  type ValidatedBill,
+} from "./types/document";
 import {
   INITIAL_BILL_UPLOAD_STATE,
   billUploadUiReducer,
@@ -24,6 +29,13 @@ const pdfBytes = new TextEncoder().encode("%PDF-1.4\nsynthetic bill\n%%EOF");
 
 function file(name = "fatura.pdf", type = "application/pdf", bytes = pdfBytes): File {
   return new File([bytes], name, { type });
+}
+
+function pdfFileWithSize(size: number): File {
+  const bytes = new Uint8Array(size);
+  bytes.set(new TextEncoder().encode("%PDF-1.4\n"));
+  bytes.set(new TextEncoder().encode("\n%%EOF"), size - 6);
+  return file("fatura.pdf", "application/pdf", bytes);
 }
 
 async function bill(): Promise<ValidatedBill> {
@@ -105,11 +117,22 @@ describe("validação da fatura", () => {
     assert.throws(() => validateBillSelection({ name: "fatura.pdf", type: "application/pdf", size: 0 }), BillValidationError);
   });
 
-  test("rejeita arquivo acima de 10 MB", () => {
+  test("aplica o limite de 4 MiB nos bytes exatos da fatura", () => {
+    assert.doesNotThrow(() => validateBillSelection({ name: "fatura.pdf", type: "application/pdf", size: 4_194_303 }));
+    assert.doesNotThrow(() => validateBillSelection({ name: "fatura.pdf", type: "application/pdf", size: 4_194_304 }));
     assert.throws(
-      () => validateBillSelection({ name: "fatura.pdf", type: "application/pdf", size: MAX_BILL_BYTES + 1 }),
+      () => validateBillSelection({ name: "fatura.pdf", type: "application/pdf", size: 4_194_305 }),
       (error: unknown) => error instanceof BillValidationError && error.reason === "size",
     );
+    assert.throws(
+      () => validateBillSelection({ name: "fatura.pdf", type: "application/pdf", size: 64 * 1024 * 1024 }),
+      (error: unknown) => error instanceof BillValidationError && error.reason === "size",
+    );
+  });
+
+  test("expõe mensagens públicas coerentes com o limite de 4 MB", () => {
+    assert.equal(BILL_UPLOAD_HELP_TEXT, "PDF, JPG ou PNG · Tamanho máximo: 4 MB");
+    assert.equal(BILL_UPLOAD_SIZE_ERROR_MESSAGE, "O arquivo deve ter no máximo 4 MB.");
   });
 
   test("aceita JPEG e normaliza extensão jpeg para jpg", async () => {
@@ -182,25 +205,47 @@ describe("Route Handler", () => {
     });
   }
 
+  function handle(
+    requestValue: Request,
+    repo: DocumentRepository = repository(),
+    storage: DocumentStorage = new MemoryStorage(),
+  ): Promise<Response> {
+    return handleBillUploadPost(requestValue, repo, storage, new MemoryRateLimiter());
+  }
+
   test("retorna sucesso sem expor bucket ou caminho", async () => {
-    const response = await handleBillUploadPost(request(), repository(), new MemoryStorage());
+    const response = await handle(request());
     const serialized = JSON.stringify(await response.json());
     assert.equal(response.status, 201);
     assert.doesNotMatch(serialized, /lead-documents|object_path|supabase/i);
   });
 
+  test("aceita exatamente 4 MiB e encaminha o arquivo ao Storage", async () => {
+    const storage = new MemoryStorage();
+    const response = await handle(request(pdfFileWithSize(4_194_304)), repository(), storage);
+    assert.equal(response.status, 201);
+    assert.equal(storage.uploads.length, 1);
+  });
+
+  test("rejeita acima de 4 MiB no servidor sem chamar o Storage", async () => {
+    const storage = new MemoryStorage();
+    const response = await handle(request(pdfFileWithSize(4_194_305)), repository(), storage);
+    const body = await response.json() as Record<string, unknown>;
+    assert.equal(response.status, 413);
+    assert.equal(body.message, "O arquivo deve ter no máximo 4 MB.");
+    assert.equal(storage.uploads.length, 0);
+  });
+
   test("mantém retry idempotente no contrato HTTP", async () => {
-    const response = await handleBillUploadPost(request(), repository({ existing: documentId }), new MemoryStorage());
+    const response = await handle(request(), repository({ existing: documentId }));
     const body = await response.json() as Record<string, unknown>;
     assert.equal(response.status, 200);
     assert.equal(body.duplicate, true);
   });
 
   test("rejeita arquivo inválido no servidor", async () => {
-    const response = await handleBillUploadPost(
+    const response = await handle(
       request(file("fatura.pdf", "application/pdf", new Uint8Array([1, 2, 3]))),
-      repository(),
-      new MemoryStorage(),
     );
     assert.equal(response.status, 400);
   });
@@ -210,7 +255,7 @@ describe("Route Handler", () => {
       async findTarget() { throw new DocumentRepositoryError("not_found"); },
       async register() { throw new Error("unreachable"); },
     };
-    const response = await handleBillUploadPost(request(), missing, new MemoryStorage());
+    const response = await handle(request(), missing);
     const serialized = JSON.stringify(await response.json());
     assert.equal(response.status, 404);
     assert.doesNotMatch(serialized, /private\.leads|Postgres|Supabase/i);

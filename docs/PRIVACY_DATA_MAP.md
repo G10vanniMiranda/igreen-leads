@@ -26,7 +26,7 @@ No automatic retention/deletion schedule exists. Production requires an approved
 | MIME type, byte size, document status and timestamps | Validation, lifecycle and audit | File/system | `private.lead_documents` | Server/admin | Infrastructure providers | MIME spoofing and oversized/abusive uploads |
 | Opaque object path | Private object lookup | System-generated UUIDs | Database and Storage | Server/admin only | Infrastructure providers | Signed URL leakage; path itself contains no filename or direct PII |
 
-MALWARE SCANNING: NOT IMPLEMENTED. This is a known Production Readiness risk. The 10 MB limit remains because it supports common scanned bills and is enforced before processing; infrastructure/WAF limits must be reviewed before Production.
+MALWARE SCANNING: NOT IMPLEMENTED. This is a known Production Readiness risk. The temporary 4 MiB (4,194,304-byte) limit is enforced server-side before Storage persistence; direct-to-Storage upload remains a future architectural decision.
 
 ## Tracking and preferences
 

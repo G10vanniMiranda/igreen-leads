@@ -1,7 +1,11 @@
 import { DocumentRepositoryError, SupabaseDocumentRepository, type DocumentRepository } from "../repository/supabase-document-repository";
 import { BillValidationError, parseBillFile, parseSubmissionId } from "../schemas/bill-upload";
 import { SupabaseDocumentStorage, type DocumentStorage } from "../storage/supabase-document-storage";
-import { MAX_BILL_BYTES, type BillUploadResponse } from "../types/document";
+import {
+  BILL_UPLOAD_SIZE_ERROR_MESSAGE,
+  MAX_BILL_BYTES,
+  type BillUploadResponse,
+} from "../types/document";
 import { uploadBill } from "./bill-upload";
 import { isSameOriginRequest } from "../../security/request-security";
 import { UPLOAD_RATE_LIMIT, publicRateLimiter, rateLimitResponse, type RateLimiter } from "../../security/rate-limit";
@@ -19,7 +23,7 @@ export async function handleBillUploadPost(
   if (limited) return limited;
   const declaredLength = Number(request.headers.get("content-length") ?? 0);
   if (Number.isFinite(declaredLength) && declaredLength > MAX_MULTIPART_BYTES) {
-    return invalidResponse(413, "O arquivo deve ter no máximo 10 MB.");
+    return invalidResponse(413, BILL_UPLOAD_SIZE_ERROR_MESSAGE);
   }
 
   try {
@@ -44,7 +48,7 @@ export async function handleBillUploadPost(
     if (error instanceof BillValidationError || error instanceof TypeError) {
       const tooLarge = error instanceof BillValidationError && error.reason === "size";
       return invalidResponse(tooLarge ? 413 : 400, tooLarge
-        ? "O arquivo deve ter no máximo 10 MB."
+        ? BILL_UPLOAD_SIZE_ERROR_MESSAGE
         : "Envie uma fatura em PDF, JPG ou PNG.");
     }
     if (error instanceof DocumentRepositoryError && error.errorClass === "not_found") {
