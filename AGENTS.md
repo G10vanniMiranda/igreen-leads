@@ -1,3 +1,12 @@
+# iGreen Leads — Agent Entrypoint
+
+Antes de qualquer alteração relevante, leia
+[`docs/AGENT_HANDOFF.md`](docs/AGENT_HANDOFF.md). Human Gates explícitos são
+obrigatórios para operações envolvendo Production, Supabase, migrations,
+schema, RLS, Storage, Vercel, variáveis de ambiente, secrets, deployment,
+merge em `main`, domínio ou analytics/trackers. Planejar não é autorizar
+execução.
+
 <!-- BEGIN:nextjs-agent-rules -->
 
 # This is NOT the Next.js you know

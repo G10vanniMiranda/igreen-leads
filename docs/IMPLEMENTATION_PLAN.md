@@ -121,13 +121,13 @@ This document is the versioned source of truth for the project technical roadmap
 
 ### TASK 11 — Production Release
 
-**Status:** PLANNED
+**Status:** COMPLETED — CONTROLLED LAUNCH
 
 - **Objective:** Release the approved and homologated product to Production.
-- **Main deliveries:** Controlled production rollout, verification, monitoring, and rollback readiness.
+- **Main deliveries:** Production environment configured, migrations applied, deployment completed, smoke validation passed, post-smoke cleanup completed. Public launch remains deliberately controlled (indexing, Meta and GA disabled) pending a separate authorization to widen exposure.
 - **Dependencies:** TASK 10 approval and explicit Production authorization.
 - **Out of scope:** Unapproved scope changes during release.
-- **Completion criterion:** Authorized release is healthy, verified, monitored, and documented.
+- **Completion criterion:** Authorized release is healthy, verified, monitored, and documented. Live operational state (deployment identifiers, smoke results, runtime baselines) is tracked in [`docs/AGENT_HANDOFF.md`](AGENT_HANDOFF.md), not in this roadmap.
 
 ### TASK 12 — Conversion Optimization
 

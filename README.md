@@ -12,6 +12,10 @@ As políticas e os procedimentos operacionais de lançamento estão registrados 
 [`docs/SECURITY.md`](docs/SECURITY.md) e
 [`docs/PRODUCTION_OPERATIONS.md`](docs/PRODUCTION_OPERATIONS.md).
 
+Qualquer agente ou desenvolvedor novo deve começar por
+[`docs/AGENT_HANDOFF.md`](docs/AGENT_HANDOFF.md), o mapa operacional atual do
+projeto.
+
 ## Ambiente local
 
 Copie `.env.example` para `.env.local` e ajuste os valores da operação. O ID de
