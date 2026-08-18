@@ -74,15 +74,35 @@ apontam de volta para aqui em vez de repetir os mesmos fatos.
 
 Estado operacional verificado na última validação registrada neste documento.
 
-- **Last verified release commit:** `d787a7c21388e0b3ee5a42fa23011a2e5c79f26c`
-- **Data do snapshot operacional:** 2026-08-17
+- **Last verified release commit:** `a8f447ec9ad91c5e6d8df860d05abbec478c549a`
+  — documentação/agent-harness apenas (`docs: establish agent source of
+  truth`); não altera código runtime, migrations, Supabase ou Vercel config.
+- **Data do snapshot operacional:** 2026-08-18
 - **Production URL:** `https://igreen-leads.vercel.app`
-- **Deployment:** `dpl_2731guQGEv53BNhL4DyB9VkXhTSt`
-- **Smoke test:** PASS
-- **Baseline pós-cleanup:** `leads = 0`, `documents = 0`, `events = 0`,
-  `storage_objects = 0`
+- **Deployment:** `dpl_HyXeg93hZbqouVyieqhs27UCh4Gq` (target `production`,
+  status `Ready`, confirmado via GitHub Deployments API — commit associado
+  `a8f447ec9ad91c5e6d8df860d05abbec478c549a`, `state: success`).
+- **Último smoke funcional completo:** PASS — pertence ao release funcional
+  anterior (commit `d787a7c21388e0b3ee5a42fa23011a2e5c79f26c`). Nenhum código
+  runtime ou migration mudou entre `d787a7c` e `a8f447e`; nenhum novo smoke
+  funcional (com writes) foi executado para `a8f447e` porque não havia nada
+  funcional novo para validar.
+- **Verificação HTTP básica pós-deploy (read-only, sem writes):** PASS — `/`
+  responde 200 sobre HTTPS com `Strict-Transport-Security`, CSP restritiva
+  (`form-action 'self'` na variante pública), `X-Robots-Tag: noindex,nofollow`
+  e `robots.txt` com `Disallow: /`; `/admin` sem sessão responde 307 para
+  `/admin/login` com a variante de CSP admin (`form-action` inclui
+  `wa.me`/`api.whatsapp.com`/`green.igreenenergy.com.br`); `GET /api/leads`
+  responde 405; nenhum script Meta/GA encontrado no HTML da home; nenhum 5xx
+  observado.
+- **Supabase Production — verificação ao vivo (read-only):** realizada em
+  2026-08-18 via SQL Editor (Data API, RLS, grants, RPCs, Storage, baseline).
+  Resultado: saudável, sem contradição funcional com a documentação. Detalhes
+  em §6 e §7.
+- **Baseline pós-cleanup (reconfirmado ao vivo em 2026-08-18):** `leads = 0`,
+  `documents = 0`, `events = 0`, `storage_objects = 0`.
 - **Lançamento controlado:** `INDEXING = OFF`, `META = OFF`, `GA = OFF`,
-  `CUSTOM DOMAIN = NOT CONFIGURED`
+  `CUSTOM DOMAIN = NOT CONFIGURED` — consistente com a verificação HTTP acima.
 
 Se o HEAD do repositório ou o estado externo real avançarem além do commit
 registrado acima, trate este snapshot como potencialmente desatualizado e
@@ -105,22 +125,36 @@ release é registrado aqui ou em qualquer outro lugar deste repositório.
   `src/features/documents/types/document.ts` (`MAX_BILL_BYTES`).
 - Signed URLs administrativas: TTL de 120 segundos, canonicalizadas para
   `/storage/v1/object/sign/{bucket}/{path}`.
+- **Confirmado ao vivo em Production (2026-08-18, read-only via SQL):** Data
+  API expõe somente `public` (`private`/`graphql_public` não expostos);
+  `private.leads`, `private.lead_documents`, `private.lead_events` com RLS
+  habilitada e zero policies (deny-by-default); grants restritos a
+  `service_role` (nenhum grant para `anon`/`authenticated`); as 10 RPCs da
+  aplicação presentes, todas `SECURITY INVOKER` com `search_path` vazio e
+  `EXECUTE` restrito a `service_role`; bucket `lead-documents` com
+  `file_size_limit = 4194304` e zero policies públicas em `storage.objects`;
+  Performance Advisor: 0 errors, 0 warnings, 1 info (unused index em
+  `private.leads`, esperado com banco sem tráfego).
 
-## 7. Known Drift — limite de upload
+## 7. Known Drift
+
+### 7.1 Limite de upload
 
 **Classificação: KNOWN INFRASTRUCTURE DRIFT / REPRODUCIBILITY DEBT.**
-**Não é uma falha ativa de Production.**
+**Não é uma falha ativa de Production.** Confirmado diretamente no runtime de
+Production em 2026-08-18 (read-only via SQL) — deixa de ser uma inferência.
 
 | Camada | Valor |
 | --- | --- |
 | Application (`MAX_BILL_BYTES`, código) | 4.194.304 bytes (4 MiB) |
-| Storage bucket `lead-documents`, runtime em Production | 4.194.304 bytes (4 MiB) |
+| Storage bucket `lead-documents`, runtime em Production (confirmado ao vivo) | 4.194.304 bytes (4 MiB) |
 | Storage bucket, valor definido na migration histórica | 10 MiB (10.485.760 bytes) |
 | DB metadata CHECK (`lead_documents.size_bytes`) | 10 MiB (10.485.760 bytes) |
 
 Durante o bootstrap do Supabase Production, o `file_size_limit` do bucket foi
-ajustado manualmente para 4 MiB e confirmado por read-back — ou seja, o
-runtime de Production já está alinhado com o limite da aplicação. A migration
+ajustado manualmente para 4 MiB — confirmado por read-back em 2026-08-18 via
+`select file_size_limit from storage.buckets where id = 'lead-documents'`. O
+runtime de Production está alinhado com o limite da aplicação. A migration
 versionada (`20260814015540_create_bill_upload.sql`) e o `CHECK` de metadata
 no banco continuam registrando 10 MiB e não foram atualizados. Isso é débito
 de reprodutibilidade: se o ambiente Production precisar ser recriado do zero a
@@ -128,6 +162,42 @@ partir das migrations, o bucket nasceria em 10 MiB até um ajuste manual
 equivalente ser reaplicado. Correção (nova migration forward-only alinhando os
 dois valores) está no backlog (seção 13) e requer Human Gate — não deve ser
 executada apenas por constar aqui.
+
+### 7.2 Migration version tracking
+
+**Classificação: KNOWN MIGRATION TRACKING DRIFT / REPRODUCIBILITY DEBT.**
+**Não é falha de runtime, de segurança ou de dados. Não bloqueia o Domain
+Gate.** Descoberto em 2026-08-18 via consulta read-only a
+`supabase_migrations.schema_migrations` em Production.
+
+As 5 migrations aplicadas em Production têm exatamente os mesmos nomes e a
+mesma ordem das 5 migrations versionadas no repositório, e o schema
+resultante foi verificado como correto (RLS, grants, RPCs e Storage — ver
+§6). Porém os `version` (timestamps) registrados não correspondem aos
+timestamps dos filenames locais:
+
+| Migration | Timestamp no repositório | `version` em Production |
+| --- | --- | --- |
+| create_lead_capture | `20260814005005` | `20260817052551` |
+| create_bill_upload | `20260814015540` | `20260817052557` |
+| align_bill_document_columns | `20260814021153` | `20260817052603` |
+| create_admin_operations | `20260814035608` | `20260817052610` |
+| add_commercial_handoff_events | `20260814165633` | `20260817052616` |
+
+As 5 versões em Production estão a 6-7 segundos uma da outra (2026-08-17,
+05:25:51–05:26:16), consistente com uma aplicação em lote única no bootstrap
+do projeto, e não com a data de autoria dos arquivos no repositório.
+
+**MIGRATION TRACKING DRIFT GUARD:** enquanto este mismatch existir, qualquer
+agente ou automação que for executar `supabase db push`, `supabase migration
+list`, `supabase migration repair`, ou qualquer operação de migration
+tooling/sincronização contra Production deve **parar antes de executar** e
+passar por um Human Gate dedicado a este mismatch especificamente. Não
+reaplicar automaticamente as 5 migrations locais interpretando os timestamps
+como pendentes — elas já estão aplicadas, apenas com tracking metadata
+diferente. Uma eventual correção via `supabase migration repair` ou mecanismo
+equivalente é uma operação de escrita em metadata, fora do escopo de qualquer
+tarefa puramente documental.
 
 ## 8. Autenticação administrativa
 
@@ -208,7 +278,8 @@ Isso não deve ser interpretado como autorização irrestrita para operações
 destrutivas em TEST. Independentemente do ambiente, continuam exigindo Human
 Gate explícito antes de qualquer execução:
 
-- migrations
+- migrations (ver §7.2 — Migration Tracking Drift Guard antes de qualquer
+  operação de migration tooling contra Production)
 - schema
 - RLS
 - configuração de Storage
@@ -234,7 +305,9 @@ corrigido automaticamente:
 - Consentimento sem ledger server-side.
 - Automação de backup/restore ainda manual.
 - Nomenclatura histórica `SUPABASE_SERVICE_ROLE_KEY`.
-- Infrastructure drift do limite de upload (seção 7 acima).
+- Infrastructure drift do limite de upload (seção 7.1 acima).
+- Migration tracking drift entre repositório e Production (seção 7.2 acima)
+  — requer Human Gate dedicado antes de qualquer `supabase migration repair`.
 - Hardening do cookie `Secure`/HSTS (`Secure` hoje é condicional ao protocolo
   da requisição, não forçado por ambiente) — requer análise específica antes
   de qualquer ajuste.
@@ -261,7 +334,7 @@ Casos já corrigidos — preservados aqui para não serem reintroduzidos:
    assinatura pode vir como `/object/sign/...`; a aplicação sempre
    canonicaliza para `/storage/v1/object/sign/...` antes de usar a URL.
 5. **Redução do limite efetivo de upload para 4 MiB** — o limite anterior era
-   10 MB; ver seção 7 (Known Drift) para o estado atual das camadas
+   10 MB; ver seção 7.1 (Known Drift) para o estado atual das camadas
    envolvidas.
 6. **Compatibilidade JWT legado vs. `sb_secret_`** — ver seção 9. Enviar
    `sb_secret_` em `Authorization: Bearer` quebra a autenticação Supabase.
