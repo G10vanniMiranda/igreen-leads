@@ -8,9 +8,7 @@ Production starts temporarily on Supabase Free without managed automatic backups
 
 ## Operational ownership
 
-An operational owner must be designated and recorded before the first scheduled backup is due. The owner is accountable for daily execution evidence, off-site retention, monthly restore evidence and escalation of failures. This repository does not invent or assign that person.
-
-**HUMAN DECISION PENDING:** record the nominal operational backup owner before launch operations begin.
+The initial operational owner for backups and restores is **Giovanni de Sousa Miranda**. The owner is accountable for daily execution evidence, off-site retention, monthly restore evidence and escalation of failures.
 
 ## Daily database backup
 
